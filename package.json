@@ -18,10 +18,14 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
+    "@aws-sdk/client-bedrock-runtime": "^3.835.0",
     "@mastra/core": "^0.10.8",
     "@mastra/libsql": "^0.11.0",
     "@mastra/loggers": "^0.10.2",
     "@mastra/memory": "^0.11.0",
+    "graphology": "^0.26.0",
+    "graphology-shortest-path": "^2.1.0",
+    "uuid": "^11.1.0",
     "zod": "^3.25.67"
   },
   "devDependencies": {
