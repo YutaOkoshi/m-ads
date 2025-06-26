@@ -1,0 +1,442 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# MBTI Multi-Agent Discussion System PRD
+**技術背景とシステム設計に基づく包括的製品要求定義書**
+
+## 技術的背景と課題設定
+
+### マルチエージェントシステムの現状課題
+
+現代のマルチエージェントシステムにおいて、従来のアプローチでは以下の限界が指摘されています：
+
+**単一視点の制約**
+- 従来のAIシステムが単一の推論パターンに依存
+- 人間の多様な認知スタイルの再現困難
+- 複雑な問題に対する包括的分析能力の不足
+
+**静的アーキテクチャの限界**
+- 固定的なエージェント間関係による適応性の欠如
+- 議論フェーズに応じた動的最適化の実現困難
+- リアルタイムでの協調パターン調整機能の不在
+
+### Role-Playing Agents（RPA）評価の技術的課題
+
+最新の研究[1]によると、Role-Playing Agentsの評価において以下の技術的課題が明らかになっています：
+
+**評価メトリクスの体系化不足**
+- エージェント属性（Agent Attributes）と評価指標の対応関係の未整理
+- タスク属性（Task Attributes）に基づく適切な評価手法の欠如
+- 7つの評価メトリクス（Performance, Psychological, External Alignment, Internal Consistency, Social Decision-making, Content Quality, Ethics）の統合的活用不足
+
+**性格特性再現の一貫性問題**
+- 事前定義された特性と実際の行動の乖離
+- 文脈的期待と行動の整合性確保の困難
+- 長期的な性格一貫性の維持課題
+
+## システム概要
+
+### プロダクト名
+**MBTI Multi-Agent Discussion System (M-ADS)**
+
+### 技術的価値提案
+
+**グラフベース動的協調システム**
+- MBTI16タイプの認知パターンを活用した多角的問題分析
+- 動的グラフトポロジー最適化による効率的エージェント協調
+- リアルタイム品質評価に基づく自動調整機能
+
+**性格特性駆動型議論制御**
+- Big Five特性とMBTP特性の統合による高精度な性格再現
+- 認知機能（Ni, Ne, Ti, Te, Fi, Fe, Si, Se）に基づく動的重み調整
+- フェーズ適応型議論フロー制御
+
+## 技術要素の詳細設計
+
+### 1. 性格特性に基づく動的重み調整システム
+
+#### 技術背景
+MBTI理論とJungの認知機能理論を統合し、各エージェントの発言重みを動的に調整するシステムです。最新の研究で示されたPersonality-behavior alignmentの課題を解決するため、多層的な重み調整アルゴリズムを実装します。
+
+#### 実装仕様
+```typescript
+interface DynamicWeightingEngine {
+// 階層的重み調整システム
+basePersonalityWeights: CognitiveFunctionWeights;
+contextualModifiers: Map<DiscussionPhase, ModifierMatrix>;
+realtimeAdjustments: DynamicAdjustmentEngine;
+
+// Big Five統合重み計算
+calculateHybridWeight(
+mbtiType: MBTIType,
+bigFiveScores: BigFiveScores,
+discussionContext: DiscussionContext
+): WeightVector;
+}
+```
+
+**核心技術要素**
+- **認知機能定量化**: Jung理論の8つの認知機能を数値化
+- **Big Five統合**: MBTI特性とBig Five特性の相関を活用した重み補正
+- **文脈適応重み**: 議論フェーズと話題領域に基づく動的調整
+- **協調履歴学習**: 過去の協調パフォーマンスに基づく重み最適化
+
+#### 評価指標
+- **内部一貫性スコア**: 性格特性と行動の整合性（目標値: ≥0.85）
+- **外部整合性スコア**: 期待される性格パターンとの一致度（目標値: ≥0.80）
+- **適応効率**: 文脈変化に対する重み調整の応答時間（目標値: ≤2秒）
+
+### 2. グラフトポロジー最適化アルゴリズム
+
+#### 技術背景
+Learning to Learn Graph Topologies研究とVEM-GCN（Variational EM algorithm for Graph Convolutional Networks）の理論を基盤とし、MBTI議論に特化したグラフ最適化を実現します。
+
+#### 実装仕様
+```typescript
+interface GraphOptimizationEngine {
+// 変分EM最適化
+variationalEMOptimizer: VEMGraphOptimizer;
+
+// リアルタイム適応制御
+realtimeAdapter: AdaptiveTopologyController;
+
+// MBTI制約条件
+mbtiConstraints: PersonalityCompatibilityMatrix;
+
+// 最適化実行
+optimizeTopology(
+currentGraph: GraphStructure,
+performanceMetrics: PerformanceMetrics,
+mbtiInteractionHistory: InteractionHistory
+): Promise<OptimizedGraphStructure>;
+}
+```
+
+**核心技術要素**
+- **変分ベイズ最適化**: 潜在グラフ構造の事後分布推定
+- **MBTI相互作用モデル**: 16タイプ間の相性を定量化した接続重み
+- **階層クラスタリング**: 4つの性格グループ（NT, NF, SJ, SP）による効率的構造化
+- **動的トポロジー制御**: 議論進行に応じたリアルタイム構造調整
+
+#### 評価指標
+- **グラフ効率性**: 情報伝達の最短パス長（目標値: ≤3.0）
+- **クラスター凝集度**: 性格グループ内の結束性（目標値: ≥0.70）
+- **適応速度**: トポロジー変更の収束時間（目標値: ≤5秒）
+
+### 3. 議論品質定量評価システム
+
+#### 技術背景
+最新のRPA評価研究[1]で提案された7つの評価メトリクスを統合し、CollabEvalフレームワークを参考とした多段階評価システムを構築します。
+
+#### 実装仕様
+```typescript
+interface QualityAssessmentEngine {
+// マルチメトリクス評価
+performanceMetrics: PerformanceEvaluator;
+psychologicalMetrics: PsychologicalAssessment;
+alignmentMetrics: AlignmentEvaluator;
+consistencyMetrics: ConsistencyChecker;
+socialMetrics: SocialDynamicsAnalyzer;
+contentMetrics: ContentQualityAnalyzer;
+ethicsMetrics: BiasAndEthicsDetector;
+
+// 統合評価実行
+assessDiscussionQuality(
+discussionSession: DiscussionSession
+): Promise<ComprehensiveQualityReport>;
+}
+```
+
+**核心技術要素**
+- **多様性定量化**: セマンティック多様性とArgument多様性の測定
+- **一貫性評価**: 論理的一貫性とMBTI特性一貫性の統合評価
+- **収束性分析**: 合意形成プロセスの効率性と品質の評価
+- **NLIベース評価**: 自然言語推論による対話コヒーレンス測定
+
+#### 評価指標
+- **多様性スコア**: 視点・論点・意味的多様性の統合値（目標値: ≥0.80）
+- **一貫性スコア**: 論理・話題・性格一貫性の統合値（目標値: ≥0.85）
+- **収束効率**: 合意形成率と参加バランスの統合値（目標値: ≥0.75）
+
+## システムアーキテクチャ
+
+### 技術スタック
+
+#### コア技術
+```json
+{
+"runtime": "Node.js 18+",
+"language": "TypeScript 5.0+",
+"aiPlatform": "Amazon Bedrock",
+"aiModel": "Claude 3.5 Sonnet v2",
+"framework": "Mastra (Multi-Agent Framework)",
+"graphProcessing": "Custom Graph Engine + Graphology",
+"evaluation": "Custom Quality Assessment Engine"
+}
+```
+
+#### 主要依存関係
+```json
+{
+"dependencies": {
+"@mastra/core": "^1.0.0",
+"@aws-sdk/client-bedrock-runtime": "^3.460.0",
+"graphology": "^0.25.0",
+"typescript": "^5.0.0",
+"uuid": "^9.0.0",
+"@tensorflow/tfjs-node": "^4.0.0"
+}
+}
+```
+
+### アーキテクチャ設計
+
+#### システム構成図
+```typescript
+interface SystemArchitecture {
+// 中央制御層
+orchestrator: DiscussionOrchestrator;
+
+// エージェント管理層
+agentManager: MBTIAgentManager;
+weightingEngine: DynamicWeightingEngine;
+
+// グラフ制御層
+graphEngine: GraphOptimizationEngine;
+topologyController: AdaptiveTopologyController;
+
+// 評価・監視層
+qualityAssessment: QualityAssessmentEngine;
+metricsCollector: MetricsCollectionService;
+
+// 統合制御層
+systemIntegrator: IntegratedControlSystem;
+}
+```
+
+#### データフロー設計
+1. **議題受信 → 初期グラフ構築**
+2. **MBTI重み計算 → エージェント活性化**
+3. **議論実行 → リアルタイム品質監視**
+4. **グラフ最適化 → 重み再調整**
+5. **結果統合 → 品質レポート生成**
+
+## 機能要件
+
+### コア機能（P0: Must Have）
+
+#### F1: MBTI統合エージェントシステム
+```typescript
+interface MBTIAgentSystem {
+// 16タイプエージェント管理
+agents: Map<MBTIType, MBTIAgent>;
+
+// 性格特性エンジン
+personalityEngine: PersonalityTraitsEngine;
+
+// 認知機能シミュレーター
+cognitiveSimulator: CognitiveFunctionSimulator;
+
+// エージェント実行
+executeDiscussion(topic: string, context: DiscussionContext): Promise<DiscussionResult>;
+}
+```
+
+#### F2: 動的グラフ協調システム
+```typescript
+interface DynamicCollaborationSystem {
+// グラフ最適化エンジン
+optimizer: GraphOptimizationEngine;
+
+// トポロジー制御
+topologyController: TopologyController;
+
+// メッセージルーティング
+messageRouter: GraphBasedMessageRouter;
+
+// 協調最適化
+optimizeCollaboration(
+currentState: CollaborationState,
+qualityMetrics: QualityMetrics
+): Promise<OptimizedCollaboration>;
+}
+```
+
+#### F3: 統合品質評価システム
+```typescript
+interface IntegratedQualitySystem {
+// 7次元品質評価
+comprehensiveEvaluator: ComprehensiveQualityEvaluator;
+
+// リアルタイム監視
+realtimeMonitor: QualityMonitoringService;
+
+// 改善推奨システム
+improvementRecommender: ImprovementRecommendationEngine;
+
+// 品質評価実行
+evaluateAndImprove(
+discussionSession: DiscussionSession
+): Promise<QualityReportWithRecommendations>;
+}
+```
+
+### 拡張機能（P1: Should Have）
+
+#### F4: 学習・適応システム
+- 議論パフォーマンス学習機能
+- エージェント性格パラメータ動的調整
+- グラフ構造最適化学習
+
+#### F5: 分析・可視化システム
+- 議論プロセス可視化ダッシュボード
+- エージェント貢献度分析
+- 品質メトリクス時系列分析
+
+## 非機能要件
+
+### パフォーマンス要件
+- **エージェント応答時間**: 平均 ≤8秒, 90%ile ≤15秒
+- **グラフ最適化時間**: ≤5秒
+- **品質評価処理時間**: ≤10秒
+- **同時議論セッション**: ≥10セッション
+
+### スケーラビリティ要件
+- **水平スケーリング**: エージェント数の動的拡張
+- **負荷分散**: 複数議論の並列実行
+- **リソース効率**: CPU使用率 ≤70%, メモリ使用率 ≤80%
+
+### 信頼性要件
+- **システム可用性**: ≥99.5%
+- **エラー回復**: 個別エージェント障害時の自動回復
+- **データ整合性**: 議論状態の完全性保証
+
+## 評価指標とKPI
+
+### 技術品質指標
+
+#### システムパフォーマンス
+- **API成功率**: ≥99.0%
+- **平均応答時間**: ≤8秒
+- **同時処理能力**: ≥10セッション
+- **リソース効率**: CPU ≤70%, Memory ≤80%
+
+#### 議論品質指標
+- **多様性スコア**: ≥0.80（視点・論点・意味の総合多様性）
+- **一貫性スコア**: ≥0.85（論理・話題・性格の総合一貫性）
+- **収束効率**: ≥0.75（合意形成率とバランス）
+- **MBTI特性再現率**: ≥0.85（期待特性との一致度）
+
+#### アルゴリズム効率性
+- **重み調整精度**: ≥0.80（文脈適応の正確性）
+- **グラフ最適化効果**: ≥0.70（最適化前後の改善率）
+- **品質評価精度**: ≥0.85（人間評価との相関）
+
+### ビジネス価値指標
+- **議論完了率**: ≥85%（開始された議論の完遂率）
+- **ユーザー満足度**: ≥4.0/5.0（議論結果の有用性）
+- **議論効率性**: 人間議論比で3-5倍の時間短縮
+
+## 開発ロードマップ
+
+### Phase 1: Core MVP開発（6-8週間）
+**目標**: 基本的なMBTI議論システムの実現
+
+**主要デリバラブル**
+- [ ] Mastraベースのマルチエージェント基盤
+- [ ] 4つのMBTIグループ代表エージェント（NT, NF, SJ, SP各1体）
+- [ ] 基本的なグラフアーキテクチャ
+- [ ] シンプルな重み調整機能
+- [ ] 基本品質評価システム
+
+**技術検証項目**
+- Claude Sonnet統合の安定性
+- グラフベース通信の効率性
+- MBTI特性再現の基本精度
+
+### Phase 2: 高度化・全機能実装（8-10週間）
+**目標**: 全16エージェントと高度化機能の完全実装
+
+**主要デリバラブル**
+- [ ] 全16のMBTIタイプエージェント
+- [ ] 動的重み調整システム完全版
+- [ ] グラフトポロジー最適化アルゴリズム
+- [ ] 7次元品質評価システム
+- [ ] リアルタイム最適化機能
+
+**品質指標達成**
+- 多様性スコア ≥0.75
+- 一貫性スコア ≥0.80
+- 収束効率 ≥0.70
+
+### Phase 3: 最適化・運用準備（4-6週間）
+**目標**: 本格運用に向けた最適化と安定性確保
+
+**主要デリバラブル**
+- [ ] パフォーマンスチューニング
+- [ ] 統合監視・ログシステム
+- [ ] 学習・適応機能
+- [ ] 分析・可視化ダッシュボード
+- [ ] 運用マニュアル・技術文書
+
+**最終品質指標**
+- 全KPI目標値達成
+- 負荷テスト完了
+- セキュリティ監査完了
+
+## リスクと対策
+
+### 技術リスク
+
+#### R1: Claude Sonnet API制限
+**リスク**: Bedrock呼び出し制限による処理能力制約
+**対策**:
+- インテリジェントキューイングシステム
+- リクエスト最適化とバッチ処理
+- 代替モデルの fallback機能
+
+#### R2: グラフ最適化の計算複雑性
+**リスク**: 16エージェント×動的最適化の計算負荷
+**対策**:
+- 階層的最適化による計算分散
+- 近似アルゴリズムの併用
+- インクリメンタル最適化
+
+#### R3: MBTI特性の主観性
+**リスク**: 性格特性の定量化と一貫性の困難
+**対策**:
+- Big Five特性との統合による客観性向上
+- 継続的な特性キャリブレーション
+- 人間評価によるground truth確立
+
+### 運用リスク
+
+#### R4: 計算コスト
+**リスク**: AI APIコストの予算超過
+**対策**:
+- 効率的プロンプトによるトークン最適化
+- 段階的スケーリング
+- コスト監視アラート
+
+#### R5: 品質の一貫性
+**リスク**: 議論品質の変動とユーザー満足度低下
+**対策**:
+- 多層品質チェック
+- フィードバックループによる継続改善
+- SLA定義と監視
+
+この包括的なPRDにより、技術的課題から実用的価値まで統合したMBTI Multi-Agent Discussion Systemの開発が可能となります。各技術要素の背景理論と評価指標を明確化することで、確実な品質保証と継続的改善を実現します。
+
+引用:
+[1] [PDF] arXiv:2502.13012v1 [cs.HC] 18 Feb 2025 https://arxiv.org/pdf/2502.13012.pdf
+[2] 採用ピッチ資料150選を紹介！独自調査から注目されている ... https://marugotoinc.jp/blog/saiyo-pitch-case/
+[3] エンジニア向け採用ピッチ資料作成のメリットとは？記載する ... https://marugotoinc.jp/blog/recruitmentpitch-engineer/
+[4] 【保存版】カルチャーデック30選｜作り方〜制作ポイントはコレ！ https://www.hear.co.jp/recruit/culturedeck
+[5] 採用ピッチ資料【SaaS企業100選】｜田中亮大 https://note.com/xoperation/n/n93109494872d
+[6] はてなアンテナ - kaz https://a.hatena.ne.jp/kazuh/?of=0
+[7] A Survey on Role-Playing Language Agents - arXiv https://arxiv.org/html/2404.18231v2
+[8] [PDF] TORONTO - CS - Huji https://www.cs.huji.ac.il/w~jeff/aamas10/pdf/05%20Workshops/W22-MABS-2010.pdf
+[9] [PDF] An Adaptive Clustering Framework for Personality Prediction Using ... https://papers.ssrn.com/sol3/Delivery.cfm/ad761aae-1ab2-49b5-b265-cddc95635903-MECA.pdf?abstractid=5271917&mirid=1
+[10] Nanoenabling MbtI Inhibitors for Next-Generation Tuberculosis ... https://pubs.acs.org/doi/10.1021/acs.jmedchem.4c02386
