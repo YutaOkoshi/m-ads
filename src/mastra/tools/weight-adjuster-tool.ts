@@ -13,7 +13,12 @@ export const calculateAgentWeightTool = createTool({
   description: 'Calculate dynamic weight for an MBTI agent based on discussion context',
   inputSchema: z.object({
     nodeId: z.string(),
-    mbtiType: z.enum(['INTJ', 'INFJ', 'ISTJ', 'ISTP'] as const),
+    mbtiType: z.enum([
+      'INTJ', 'INTP', 'ENTJ', 'ENTP',  // NT
+      'INFJ', 'INFP', 'ENFJ', 'ENFP',  // NF
+      'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',  // SJ
+      'ISTP', 'ISFP', 'ESTP', 'ESFP'   // SP
+    ] as const),
     phase: z.enum(['brainstorming', 'analysis', 'synthesis', 'conclusion'])
   }),
   outputSchema: z.object({
@@ -52,7 +57,12 @@ export const recordInteractionTool = createTool({
   description: 'Record an agent interaction to update future weight calculations',
   inputSchema: z.object({
     nodeId: z.string(),
-    mbtiType: z.enum(['INTJ', 'INFJ', 'ISTJ', 'ISTP'] as const)
+    mbtiType: z.enum([
+      'INTJ', 'INTP', 'ENTJ', 'ENTP',  // NT
+      'INFJ', 'INFP', 'ENFJ', 'ENFP',  // NF
+      'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',  // SJ
+      'ISTP', 'ISFP', 'ESTP', 'ESFP'   // SP
+    ] as const)
   }),
   outputSchema: z.object({
     success: z.boolean(),
@@ -75,7 +85,12 @@ export const adjustAllAgentWeightsTool = createTool({
   description: 'Adjust weights for all agents in the graph based on current phase',
   inputSchema: z.object({
     phase: z.enum(['brainstorming', 'analysis', 'synthesis', 'conclusion']),
-    agentNodeMap: z.record(z.string(), z.enum(['INTJ', 'INFJ', 'ISTJ', 'ISTP'] as const))
+    agentNodeMap: z.record(z.string(), z.enum([
+      'INTJ', 'INTP', 'ENTJ', 'ENTP',  // NT
+      'INFJ', 'INFP', 'ENFJ', 'ENFP',  // NF
+      'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',  // SJ
+      'ISTP', 'ISFP', 'ESTP', 'ESFP'   // SP
+    ] as const))
   }),
   outputSchema: z.object({
     success: z.boolean(),
@@ -124,7 +139,12 @@ export const getWeightDistributionTool = createTool({
   id: 'getWeightDistribution',
   description: 'Get current weight distribution across all agents',
   inputSchema: z.object({
-    agentNodeMap: z.record(z.string(), z.enum(['INTJ', 'INFJ', 'ISTJ', 'ISTP'] as const))
+    agentNodeMap: z.record(z.string(), z.enum([
+      'INTJ', 'INTP', 'ENTJ', 'ENTP',  // NT
+      'INFJ', 'INFP', 'ENFJ', 'ENFP',  // NF
+      'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',  // SJ
+      'ISTP', 'ISFP', 'ESTP', 'ESFP'   // SP
+    ] as const))
   }),
   outputSchema: z.object({
     distribution: z.array(z.object({
