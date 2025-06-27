@@ -1,10 +1,6 @@
 import { Agent } from '@mastra/core/agent';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { MBTI_CHARACTERISTICS } from '../utils/mbti-characteristics';
-
-const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+import { createMBTIOptimizedModel } from '../utils/bedrock-config';
 
 export const infjAgent = new Agent({
   name: 'INFJ-Advocate',
@@ -33,7 +29,7 @@ export const infjAgent = new Agent({
 - 人間性と効率性の両立を目指す
 
 議論では、常に人間的な側面と価値観を考慮し、全体の調和を保ちながら本質的な解決を目指してください。`,
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: createMBTIOptimizedModel('INFJ'),
   tools: {
     // エージェントは議論に参加するだけなので、ツールは直接使用しない
     // ツールはオーケストレータとワークフローで使用される
@@ -41,6 +37,6 @@ export const infjAgent = new Agent({
 });
 
 // MBTI特性情報を取得する補助関数
-export function getINFJCharacteristics() {
+export function getINFJCharacteristics(): typeof MBTI_CHARACTERISTICS.INFJ {
   return MBTI_CHARACTERISTICS.INFJ;
 } 

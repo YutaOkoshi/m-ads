@@ -170,7 +170,7 @@ discussionSession: DiscussionSession
 "runtime": "Node.js 18+",
 "language": "TypeScript 5.0+",
 "aiPlatform": "Amazon Bedrock",
-"aiModel": "Claude 3.5 Sonnet v2",
+"aiModel": "Claude 3.7 Sonnet V1 v2",
 "framework": "Mastra (Multi-Agent Framework)",
 "graphProcessing": "Custom Graph Engine + Graphology",
 "evaluation": "Custom Quality Assessment Engine"
@@ -427,6 +427,223 @@ discussionSession: DiscussionSession
 - フィードバックループによる継続改善
 - SLA定義と監視
 
+## 開発ルール・技術ガイドライン
+
+### Bedrock LLM設定の共通化ルール
+
+**【必須】共通設定ファイルの使用**
+```typescript
+// ❌ 禁止: 各ファイルでの個別Bedrock設定
+const bedrock = createAmazonBedrock({...});
+
+// ✅ 必須: 共通設定ファイルの使用
+import { createMBTIOptimizedModel, createBedrockModel } from '../utils/bedrock-config';
+```
+
+**実装ガイドライン**
+1. **MBTIエージェント**: 必ず`createMBTIOptimizedModel(mbtiType)`を使用
+2. **オーケストレータ**: `createBedrockModel(MBTI_MODEL_PREFERENCES.ORCHESTRATOR)`を使用
+3. **カスタムエージェント**: `createBedrockModel(BEDROCK_MODELS.CLAUDE_3_7_SONNET)`等を使用
+4. **新規モデル追加**: `BEDROCK_MODELS`定数に追加してから使用
+
+**利用可能なモデル**
+```typescript
+// 高性能モデル（推奨）
+BEDROCK_MODELS.CLAUDE_3_7_SONNET      // 最新・高性能
+BEDROCK_MODELS.CLAUDE_3_5_SONNET_V2   // バランス型
+
+// 特殊用途モデル
+BEDROCK_MODELS.CLAUDE_3_HAIKU         // 軽量・高速
+BEDROCK_MODELS.CLAUDE_3_OPUS          // 最高性能・低速
+```
+
+**MBTIタイプ別最適化**
+- **直感型（N）**: Claude 3.7 Sonnet → 創造的・抽象的思考
+- **感覚型（S）**: Claude 3.5 Sonnet V2 → 具体的・実践的思考
+- **思考型（T）**: Claude 3.7 Sonnet → 論理的・分析的思考
+- **感情型（F）**: Claude 3.5 Sonnet V2 → 人間的・価値観重視思考
+
+**品質保証**
+- TypeScript型安全性の活用
+- 設定変更は`bedrock-config.ts`で一元管理
+- 新規エージェント追加時は必ず共通設定を使用
+
+### TypeScript Type Safety ルール
+
+**【必須】`any`型の使用禁止**
+```typescript
+// ❌ 禁止: any型の使用
+function processData(data: any): any {
+  return data.someProperty;
+}
+
+// ✅ 必須: 適切な型定義
+interface DataInterface {
+  someProperty: string;
+  optionalProp?: number;
+}
+
+function processData(data: DataInterface): string {
+  return data.someProperty;
+}
+```
+
+**【必須】null/undefined安全性の確保**
+```typescript
+// ❌ 禁止: null/undefinedチェックなし
+function getName(user: User): string {
+  return user.name; // user.nameがundefinedの可能性
+}
+
+// ✅ 必須: Optional chainingと型ガードの使用
+function getName(user: User | null): string {
+  return user?.name ?? 'Unknown';
+}
+
+// ✅ 推奨: 型ガードの活用
+function isValidUser(user: unknown): user is User {
+  return typeof user === 'object' && 
+         user !== null && 
+         'name' in user && 
+         typeof (user as User).name === 'string';
+}
+```
+
+**【必須】型定義の徹底**
+```typescript
+// ❌ 禁止: 型推論に頼った曖昧な定義
+const agentConfig = {
+  name: 'INFJ-Agent',
+  // プロパティが増える可能性がある
+};
+
+// ✅ 必須: 明示的な型定義
+interface AgentConfig {
+  readonly name: string;
+  readonly mbtiType: MBTIType;
+  readonly cognitiveFunction: CognitiveFunctionSet;
+  readonly modelPreference?: BedrockModelType;
+}
+
+const agentConfig: AgentConfig = {
+  name: 'INFJ-Agent',
+  mbtiType: 'INFJ',
+  cognitiveFunction: COGNITIVE_FUNCTIONS.INFJ,
+  modelPreference: BEDROCK_MODELS.CLAUDE_3_7_SONNET,
+};
+```
+
+**【必須】Union型とLiteral型の活用**
+```typescript
+// ❌ 禁止: 文字列での状態管理
+type DiscussionPhase = string;
+const phase = 'brainstorming'; // typoの可能性
+
+// ✅ 必須: Union型とLiteral型
+type DiscussionPhase = 'brainstorming' | 'analysis' | 'synthesis' | 'conclusion';
+const phase: DiscussionPhase = 'brainstorming'; // 型安全性保証
+
+// ✅ 推奨: const assertionの活用
+const DISCUSSION_PHASES = ['brainstorming', 'analysis', 'synthesis', 'conclusion'] as const;
+type DiscussionPhase = typeof DISCUSSION_PHASES[number];
+```
+
+**【必須】Error Handlingの型安全性**
+```typescript
+// ❌ 禁止: anyでのエラーハンドリング
+try {
+  await someAsyncOperation();
+} catch (error: any) {
+  console.log(error.message); // error.messageが存在しない可能性
+}
+
+// ✅ 必須: 型安全なエラーハンドリング
+interface AppError {
+  message: string;
+  code: string;
+  cause?: Error;
+}
+
+function isAppError(error: unknown): error is AppError {
+  return typeof error === 'object' && 
+         error !== null && 
+         'message' in error && 
+         'code' in error;
+}
+
+try {
+  await someAsyncOperation();
+} catch (error: unknown) {
+  if (isAppError(error)) {
+    console.log(`Error: ${error.message} (${error.code})`);
+  } else if (error instanceof Error) {
+    console.log(`Unexpected error: ${error.message}`);
+  } else {
+    console.log('Unknown error occurred');
+  }
+}
+```
+
+**【必須】Generic型の適切な使用**
+```typescript
+// ❌ 禁止: 型パラメータなしのGeneric
+interface ApiResponse {
+  data: any; // any使用禁止
+  status: number;
+}
+
+// ✅ 必須: 適切なGeneric型定義
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+  error?: string;
+}
+
+interface MBTIAgentResponse {
+  agentId: string;
+  response: string;
+  confidence: number;
+}
+
+// 使用例
+const response: ApiResponse<MBTIAgentResponse> = await fetchAgentResponse();
+```
+
+### コード品質ルール
+
+**Type Safety**
+- **strict modeの活用**: tsconfig.jsonで`"strict": true`を必須とする
+- **noImplicitAny**: 暗黙のany型を禁止
+- **strictNullChecks**: null/undefinedの厳密チェックを有効化
+- **noImplicitReturns**: 全てのコードパスでの戻り値を必須化
+
+**ESLint TypeScript ルール**
+```json
+// .eslintrc.json
+{
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-unsafe-assignment": "error",
+    "@typescript-eslint/no-unsafe-member-access": "error",
+    "@typescript-eslint/no-unsafe-call": "error",
+    "@typescript-eslint/no-unsafe-return": "error",
+    "@typescript-eslint/prefer-nullish-coalescing": "error",
+    "@typescript-eslint/prefer-optional-chain": "error",
+    "@typescript-eslint/strict-boolean-expressions": "error"
+  }
+}
+```
+
+**保守性**
+- **readonly プロパティ**: 不変性が重要なオブジェクトではreadonly修飾子を使用
+- **const assertion**: 配列やオブジェクトリテラルでの型推論を強化
+- **型定義分離**: 複雑な型定義は専用ファイル（types/）に分離
+
+**テスト性**
+- **型ガード関数**: テストで使用する型チェック関数の単体テスト実装
+- **Mock型定義**: テスト用のMock型を適切に定義
+- **型安全なAssertion**: テストのAssertionも型安全に実装
+
 この包括的なPRDにより、技術的課題から実用的価値まで統合したMBTI Multi-Agent Discussion Systemの開発が可能となります。各技術要素の背景理論と評価指標を明確化することで、確実な品質保証と継続的改善を実現します。
 
 引用:
@@ -439,4 +656,4 @@ discussionSession: DiscussionSession
 [7] A Survey on Role-Playing Language Agents - arXiv https://arxiv.org/html/2404.18231v2
 [8] [PDF] TORONTO - CS - Huji https://www.cs.huji.ac.il/w~jeff/aamas10/pdf/05%20Workshops/W22-MABS-2010.pdf
 [9] [PDF] An Adaptive Clustering Framework for Personality Prediction Using ... https://papers.ssrn.com/sol3/Delivery.cfm/ad761aae-1ab2-49b5-b265-cddc95635903-MECA.pdf?abstractid=5271917&mirid=1
-[10] Nanoenabling MbtI Inhibitors for Next-Generation Tuberculosis ... https://pubs.acs.org/doi/10.1021/acs.jmedchem.4c02386
+[10] Nanoenabling MbtI Inhibitors for Next-Generation Tuberculosis ... https://pubs.ams.org/doi/10.1021/acs.jmedchem.4c02386

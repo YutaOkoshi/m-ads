@@ -1,5 +1,4 @@
 import { Agent } from '@mastra/core/agent';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { 
   initializeGraphTool,
   addAgentToGraphTool,
@@ -19,10 +18,7 @@ import {
   compareQualityMetricsTool,
   generateQualityReportTool
 } from '../tools/quality-evaluator-tool';
-
-const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+import { createBedrockModel, MBTI_MODEL_PREFERENCES } from '../utils/bedrock-config';
 
 export const orchestratorAgent = new Agent({
   name: 'M-ADS-Orchestrator',
@@ -54,7 +50,7 @@ export const orchestratorAgent = new Agent({
 5. 最終的な品質レポートを生成
 
 常に公平で効率的な議論を心がけ、すべてのMBTIタイプの視点が適切に反映されるよう調整してください。`,
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: createBedrockModel(MBTI_MODEL_PREFERENCES.ORCHESTRATOR),
   tools: {
     // グラフ管理ツール
     initializeGraph: initializeGraphTool,

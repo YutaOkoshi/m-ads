@@ -1,7 +1,8 @@
 import Graph from 'graphology';
 import { bidirectional } from 'graphology-shortest-path';
 import { v4 as uuidv4 } from 'uuid';
-import { GraphNode, MBTIType, MBTIGroup } from '../types/mbti-types';
+import type { GraphNode, MBTIType} from '../types/mbti-types';
+import { MBTIGroup } from '../types/mbti-types';
 import { GROUP_COMPATIBILITY, getGroupFromType } from './mbti-characteristics';
 
 export class DiscussionGraph {

@@ -1,10 +1,6 @@
 import { Agent } from '@mastra/core/agent';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { MBTI_CHARACTERISTICS } from '../utils/mbti-characteristics';
-
-const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+import { createMBTIOptimizedModel } from '../utils/bedrock-config';
 
 export const istpAgent = new Agent({
   name: 'ISTP-Virtuoso',
@@ -33,7 +29,7 @@ export const istpAgent = new Agent({
 - シンプルで効果的な解決策を好む
 
 議論では、常に実用性と論理性を重視し、実際に機能する解決策を提示することを心がけてください。`,
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: createMBTIOptimizedModel('ISTP'),
   tools: {
     // エージェントは議論に参加するだけなので、ツールは直接使用しない
     // ツールはオーケストレータとワークフローで使用される
@@ -41,6 +37,6 @@ export const istpAgent = new Agent({
 });
 
 // MBTI特性情報を取得する補助関数
-export function getISTPCharacteristics() {
+export function getISTPCharacteristics(): typeof MBTI_CHARACTERISTICS.ISTP {
   return MBTI_CHARACTERISTICS.ISTP;
 } 

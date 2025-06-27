@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { MBTIType, DiscussionContext } from '../types/mbti-types';
+import type { MBTIType} from '../types/mbti-types';
+import { DiscussionContext } from '../types/mbti-types';
 import { calculateDynamicWeight, MBTI_CHARACTERISTICS } from '../utils/mbti-characteristics';
 import { getDiscussionGraph } from './graph-manager-tool';
 

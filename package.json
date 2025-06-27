@@ -7,7 +7,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "mastra dev",
     "build": "mastra build",
-    "start": "mastra start"
+    "start": "mastra start",
+    "discuss": "tsx src/mastra/run-discussion.ts",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "type-check": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -17,8 +21,10 @@
     "node": ">=20.9.0"
   },
   "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^2.2.10",
     "@ai-sdk/anthropic": "^1.2.12",
     "@aws-sdk/client-bedrock-runtime": "^3.835.0",
+    "@aws-sdk/credential-providers": "^3.835.0",
     "@mastra/core": "^0.10.8",
     "@mastra/libsql": "^0.11.0",
     "@mastra/loggers": "^0.10.2",
@@ -30,7 +36,11 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.4",
+    "@typescript-eslint/eslint-plugin": "^8.16.0",
+    "@typescript-eslint/parser": "^8.16.0",
+    "eslint": "^9.17.0",
     "mastra": "^0.10.8",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   }
 }

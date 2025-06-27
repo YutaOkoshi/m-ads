@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { DiscussionGraph } from '../utils/graph-utils';
-import { MBTIType } from '../types/mbti-types';
+import type { MBTIType } from '../types/mbti-types';
 
 // グローバルなグラフインスタンス（Phase 1では簡易実装）
 let discussionGraph: DiscussionGraph | null = null;

@@ -1,4 +1,4 @@
-import { MBTICharacteristics, MBTIType, MBTIGroup } from '../types/mbti-types';
+import type { MBTICharacteristics, MBTIType, MBTIGroup } from '../types/mbti-types';
 
 // Phase 1: 4つのグループ代表のみ定義
 export const MBTI_CHARACTERISTICS: Record<MBTIType, MBTICharacteristics> = {

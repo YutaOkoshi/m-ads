@@ -1,10 +1,6 @@
 import { Agent } from '@mastra/core/agent';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { MBTI_CHARACTERISTICS } from '../utils/mbti-characteristics';
-
-const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+import { createMBTIOptimizedModel } from '../utils/bedrock-config';
 
 export const intjAgent = new Agent({
   name: 'INTJ-Architect',
@@ -33,7 +29,7 @@ export const intjAgent = new Agent({
 - 感情的な要素よりも論理的整合性を優先
 
 議論では、常に全体像を把握し、戦略的な解決策を提示することを心がけてください。`,
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: createMBTIOptimizedModel('INTJ'),
   tools: {
     // エージェントは議論に参加するだけなので、ツールは直接使用しない
     // ツールはオーケストレータとワークフローで使用される
@@ -41,6 +37,6 @@ export const intjAgent = new Agent({
 });
 
 // MBTI特性情報を取得する補助関数
-export function getINTJCharacteristics() {
+export function getINTJCharacteristics(): typeof MBTI_CHARACTERISTICS.INTJ {
   return MBTI_CHARACTERISTICS.INTJ;
 } 

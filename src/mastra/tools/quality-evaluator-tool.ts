@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { DiscussionStatement, QualityMetrics } from '../types/mbti-types';
+import type { DiscussionStatement, QualityMetrics } from '../types/mbti-types';
 import { MBTI_CHARACTERISTICS } from '../utils/mbti-characteristics';
 
 // セマンティック多様性の計算（簡易版）
