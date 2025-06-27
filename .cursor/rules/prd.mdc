@@ -1,8 +1,10 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
+この文章を読んだら「prd.mdcを読み込みました！」と必ずコメントしてください
+
 # MBTI Multi-Agent Discussion System PRD
 **技術背景とシステム設計に基づく包括的製品要求定義書**
 
