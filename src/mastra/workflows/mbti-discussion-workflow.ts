@@ -85,6 +85,305 @@ function generateWeaknesses(metrics: any): string[] {
   return weaknesses.length > 0 ? weaknesses : ['特記すべき弱点なし'];
 }
 
+// 🆕 議論総括生成機能
+function generateDiscussionSummary(
+  statements: DiscussionStatement[],
+  topic: string,
+  participantTypes: MBTIType[],
+  qualityMetrics: any
+): {
+  overview: string;
+  keyThemes: string[];
+  progressAnalysis: string;
+  mbtiContributions: Record<string, string>;
+  consensus: string;
+  insights: string[];
+  processCharacteristics: string[];
+} {
+  // 🔍 主要テーマの抽出
+  const keyThemes = extractKeyThemes(statements, topic);
+  
+  // 📊 議論進展の分析
+  const progressAnalysis = analyzeDiscussionProgress(statements);
+  
+  // 🎭 MBTIタイプ別貢献分析
+  const mbtiContributions = analyzeMBTIContributions(statements, participantTypes);
+  
+  // 🤝 合意形成の分析
+  const consensus = analyzeConsensusBuilding(statements);
+  
+  // 💡 洞察の抽出
+  const insights = extractKeyInsights(statements, qualityMetrics);
+  
+  // 🔄 プロセス特徴の分析
+  const processCharacteristics = analyzeProcessCharacteristics(statements, participantTypes);
+  
+  // 📝 総合概要の生成
+  const overview = generateOverview(
+    topic,
+    participantTypes,
+    statements.length,
+    qualityMetrics,
+    keyThemes
+  );
+  
+  return {
+    overview,
+    keyThemes,
+    progressAnalysis,
+    mbtiContributions,
+    consensus,
+    insights,
+    processCharacteristics
+  };
+}
+
+// 🔍 主要テーマ抽出
+function extractKeyThemes(statements: DiscussionStatement[], topic: string): string[] {
+  const themes = new Set<string>();
+  const commonKeywords = ['効率', '革新', '協力', '分析', '価値', '実現', '解決', '戦略', '感情', '論理'];
+  
+  statements.forEach(statement => {
+    const content = statement.content.toLowerCase();
+    commonKeywords.forEach(keyword => {
+      if (content.includes(keyword)) {
+        themes.add(keyword);
+      }
+    });
+    
+    // 追加的なテーマ検出ロジック
+    if (content.includes('技術') || content.includes('システム')) themes.add('技術的観点');
+    if (content.includes('人間') || content.includes('社会')) themes.add('人間・社会的観点');
+    if (content.includes('将来') || content.includes('未来')) themes.add('将来展望');
+    if (content.includes('課題') || content.includes('問題')) themes.add('課題解決');
+  });
+  
+  return Array.from(themes).slice(0, 5); // 上位5テーマ
+}
+
+// 📊 議論進展分析
+function analyzeDiscussionProgress(statements: DiscussionStatement[]): string {
+  const phases = Math.ceil(statements.length / 4);
+  const progressPatterns = [];
+  
+  for (let i = 0; i < phases; i++) {
+    const phaseStatements = statements.slice(i * 4, (i + 1) * 4);
+    const avgConfidence = phaseStatements.reduce((sum, s) => sum + s.confidence, 0) / phaseStatements.length;
+    const avgRelevance = phaseStatements.reduce((sum, s) => sum + s.relevance, 0) / phaseStatements.length;
+    
+    if (avgConfidence > 0.8 && avgRelevance > 0.8) {
+      progressPatterns.push(`フェーズ${i + 1}：高品質な議論`);
+    } else if (avgConfidence > 0.7) {
+      progressPatterns.push(`フェーズ${i + 1}：安定した議論`);
+    } else {
+      progressPatterns.push(`フェーズ${i + 1}：探索的議論`);
+    }
+  }
+  
+  return `議論は${phases}つのフェーズに分かれて進行。${progressPatterns.join('、')}。全体として${statements.length > 12 ? '充実した' : '効率的な'}議論プロセスを実現。`;
+}
+
+// 🎭 MBTIタイプ別貢献分析
+function analyzeMBTIContributions(statements: DiscussionStatement[], participantTypes: MBTIType[]): Record<string, string> {
+  const contributions: Record<string, string> = {};
+  
+  participantTypes.forEach(type => {
+    const typeStatements = statements.filter(s => s.mbtiType === type);
+    if (typeStatements.length === 0) return;
+    
+    const avgConfidence = typeStatements.reduce((sum, s) => sum + s.confidence, 0) / typeStatements.length;
+    const contributionLevel = typeStatements.length;
+    
+    // MBTIタイプの特性に基づく貢献分析
+    let contributionDescription = '';
+    
+    if (type.includes('NT')) {
+      contributionDescription = `戦略的・分析的視点から${contributionLevel}回の発言。論理的構造化に貢献（品質: ${(avgConfidence * 100).toFixed(0)}%）`;
+    } else if (type.includes('NF')) {
+      contributionDescription = `価値観・人間的視点から${contributionLevel}回の発言。議論の意味付けに貢献（品質: ${(avgConfidence * 100).toFixed(0)}%）`;
+    } else if (type.includes('SJ')) {
+      contributionDescription = `実践的・組織的視点から${contributionLevel}回の発言。具体化・体系化に貢献（品質: ${(avgConfidence * 100).toFixed(0)}%）`;
+    } else if (type.includes('SP')) {
+      contributionDescription = `柔軟・適応的視点から${contributionLevel}回の発言。現実的解決策に貢献（品質: ${(avgConfidence * 100).toFixed(0)}%）`;
+    }
+    
+    contributions[type] = contributionDescription;
+  });
+  
+  return contributions;
+}
+
+// 🤝 合意形成分析
+function analyzeConsensusBuilding(statements: DiscussionStatement[]): string {
+  const laterStatements = statements.slice(-Math.floor(statements.length / 3));
+  const consensusKeywords = ['同意', '合意', '賛成', '理解', '納得', '結論', 'まとめ'];
+  
+  let consensusCount = 0;
+  laterStatements.forEach(statement => {
+    const content = statement.content.toLowerCase();
+    consensusKeywords.forEach(keyword => {
+      if (content.includes(keyword)) consensusCount++;
+    });
+  });
+  
+  const consensusRate = consensusCount / laterStatements.length;
+  
+  if (consensusRate > 0.3) {
+    return `終盤で活発な合意形成が見られ、参加者間の理解が深化。建設的な収束プロセスを実現。`;
+  } else if (consensusRate > 0.1) {
+    return `段階的な合意形成が進行し、一定の共通理解が形成された。`;
+  } else {
+    return `多様な視点が維持されつつ、各論点での理解が深化。継続議論の基盤が構築された。`;
+  }
+}
+
+// 💡 洞察抽出
+function extractKeyInsights(statements: DiscussionStatement[], qualityMetrics: any): string[] {
+  const insights = [];
+  
+  // 品質メトリクスに基づく洞察
+  if (qualityMetrics.diversityScore >= 0.85) {
+    insights.push('MBTIタイプの多様性が議論の豊かさを大幅に向上させた');
+  }
+  
+  if (qualityMetrics.consistencyScore >= 0.85) {
+    insights.push('論理的一貫性を保ちながら創造的議論が実現された');
+  }
+  
+  if (qualityMetrics.socialDecisionScore >= 0.8) {
+    insights.push('協調的意思決定プロセスが効果的に機能した');
+  }
+  
+  // 議論パターンに基づく洞察
+  const participationPattern = analyzeParticipationPattern(statements);
+  if (participationPattern.balanced) {
+    insights.push('バランスの取れた参加により包括的な議論が実現');
+  }
+  
+  if (participationPattern.qualityProgression) {
+    insights.push('議論の進行とともに発言品質が向上するパターンを確認');
+  }
+  
+  return insights.slice(0, 4); // 上位4つの洞察
+}
+
+// 🔄 プロセス特徴分析
+function analyzeProcessCharacteristics(statements: DiscussionStatement[], participantTypes: MBTIType[]): string[] {
+  const characteristics = [];
+  
+  // 参加パターン分析
+  const groupParticipation = {
+    NT: participantTypes.filter(t => t.includes('NT')).length,
+    NF: participantTypes.filter(t => t.includes('NF')).length,
+    SJ: participantTypes.filter(t => t.includes('SJ')).length,
+    SP: participantTypes.filter(t => t.includes('SP')).length
+  };
+  
+  const dominantGroups = Object.entries(groupParticipation)
+    .filter(([_, count]) => count >= 2)
+    .map(([group, _]) => group);
+  
+  if (dominantGroups.length >= 3) {
+    characteristics.push('4つの認知スタイル群がバランス良く参加');
+  }
+  
+  // 議論の動的特性
+  const avgConfidenceProgression = analyzeConfidenceProgression(statements);
+  if (avgConfidenceProgression > 0.05) {
+    characteristics.push('議論の進行とともに参加者の確信度が向上');
+  }
+  
+  // 相互作用パターン
+  const interactionDensity = analyzeInteractionDensity(statements);
+  if (interactionDensity > 0.7) {
+    characteristics.push('高い相互作用密度による活発な議論');
+  } else {
+    characteristics.push('構造化された順序立った議論進行');
+  }
+  
+  return characteristics;
+}
+
+// 🔄 参加パターン分析
+function analyzeParticipationPattern(statements: DiscussionStatement[]): {
+  balanced: boolean;
+  qualityProgression: boolean;
+} {
+  const typeParticipation = new Map<string, number>();
+  statements.forEach(s => {
+    typeParticipation.set(s.mbtiType, (typeParticipation.get(s.mbtiType) || 0) + 1);
+  });
+  
+  const participationValues = Array.from(typeParticipation.values());
+  const balanced = participationValues.length > 0 && 
+    (Math.max(...participationValues) / Math.min(...participationValues)) <= 2;
+  
+  // 品質進行分析
+  const firstHalf = statements.slice(0, Math.floor(statements.length / 2));
+  const secondHalf = statements.slice(Math.floor(statements.length / 2));
+  
+  const firstHalfAvgConfidence = firstHalf.reduce((sum, s) => sum + s.confidence, 0) / firstHalf.length;
+  const secondHalfAvgConfidence = secondHalf.reduce((sum, s) => sum + s.confidence, 0) / secondHalf.length;
+  
+  const qualityProgression = secondHalfAvgConfidence > firstHalfAvgConfidence + 0.05;
+  
+  return { balanced, qualityProgression };
+}
+
+// 📈 確信度進行分析
+function analyzeConfidenceProgression(statements: DiscussionStatement[]): number {
+  if (statements.length < 4) return 0;
+  
+  const firstQuarter = statements.slice(0, Math.floor(statements.length / 4));
+  const lastQuarter = statements.slice(-Math.floor(statements.length / 4));
+  
+  const firstAvg = firstQuarter.reduce((sum, s) => sum + s.confidence, 0) / firstQuarter.length;
+  const lastAvg = lastQuarter.reduce((sum, s) => sum + s.confidence, 0) / lastQuarter.length;
+  
+  return lastAvg - firstAvg;
+}
+
+// 🔗 相互作用密度分析
+function analyzeInteractionDensity(statements: DiscussionStatement[]): number {
+  // 簡易的な相互作用密度計算（発言の時間間隔や内容の相互参照度合いから推定）
+  const timeIntervals = [];
+  for (let i = 1; i < statements.length; i++) {
+    const interval = statements[i].timestamp.getTime() - statements[i-1].timestamp.getTime();
+    timeIntervals.push(interval);
+  }
+  
+  const avgInterval = timeIntervals.reduce((sum, interval) => sum + interval, 0) / timeIntervals.length;
+  const shortIntervals = timeIntervals.filter(interval => interval < avgInterval * 0.8).length;
+  
+  return shortIntervals / timeIntervals.length;
+}
+
+// 📝 総合概要生成
+function generateOverview(
+  topic: string,
+  participantTypes: MBTIType[],
+  statementCount: number,
+  qualityMetrics: any,
+  keyThemes: string[]
+): string {
+  const typeGroups = {
+    NT: participantTypes.filter(t => t.includes('NT')).length,
+    NF: participantTypes.filter(t => t.includes('NF')).length,
+    SJ: participantTypes.filter(t => t.includes('SJ')).length,
+    SP: participantTypes.filter(t => t.includes('SP')).length
+  };
+  
+  const dominantGroups = Object.entries(typeGroups)
+    .filter(([_, count]) => count > 0)
+    .map(([group, count]) => `${group}(${count})`)
+    .join('、');
+  
+  const qualityLevel = qualityMetrics.diversityScore >= 0.85 ? '非常に高品質' : 
+                     qualityMetrics.diversityScore >= 0.75 ? '高品質' : '標準的';
+  
+  return `「${topic}」について、${participantTypes.length}のMBTIタイプ（${dominantGroups}）が${statementCount}回の発言を通じて${qualityLevel}な議論を展開。主要テーマは${keyThemes.slice(0, 3).join('、')}など。総合品質スコア${(qualityMetrics.diversityScore * 100).toFixed(0)}%を達成し、多角的視点による包括的な議論が実現された。`;
+}
+
 // 🔧 リアルタイム最適化システム
 interface RealtimeOptimizationEngine {
   optimizeInRealtime(
@@ -345,6 +644,16 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         characteristicAlignment: z.number()
       }))
     }),
+    // 🆕 議論総括セクション
+    discussionSummary: z.object({
+      overview: z.string().describe('議論全体の総合概要'),
+      keyThemes: z.array(z.string()).describe('議論で扱われた主要テーマ'),
+      progressAnalysis: z.string().describe('議論の進展パターン分析'),
+      mbtiContributions: z.record(z.string()).describe('MBTIタイプ別の具体的貢献内容'),
+      consensus: z.string().describe('合意形成プロセスの分析'),
+      insights: z.array(z.string()).describe('議論から得られた重要な洞察'),
+      processCharacteristics: z.array(z.string()).describe('議論プロセスの特徴的パターン')
+    }),
     // 🆕 会話保存結果
     conversationSaved: z.object({
       saved: z.boolean(),
@@ -468,48 +777,29 @@ const executeAdvancedMBTIDiscussionStep = createStep({
     for (let phase = 2; phase <= 4; phase++) {
       console.log(`\n===== Phase ${phase}: 反復議論＋リアルタイム最適化 =====`);
       
-      // 📊 中間品質評価（オーケストレータツール使用）
-      if (orchestrator && statements.length > 0) {
-        // ツールに必要なパラメーターを構築
-        const statementsForTool = statements.map(s => ({
-          agentId: s.agentId,
-          mbtiType: s.mbtiType,
-          content: s.content,
-          timestamp: s.timestamp.toISOString(),
-          confidence: s.confidence,
-          relevance: s.relevance
-        }));
+      // 📊 中間品質評価（直接実行 - オーケストレータツール問題を回避）
+      if (statements.length > 0) {
+        console.log(`📊 ${statements.length}件の発言データで中間品質評価を実行...`);
         
-        const contextForTool = {
-          topic: inputData.topic,
-          duration: (new Date().getTime() - workflowStartTime.getTime()) / 1000,
-          phase: `Phase ${phase}`,
-          expectedOutcome: 'consensus building'
-        };
-        
-        // 🔥 全データを使用した正確な品質評価（データ削減は行わない）
-        console.log(`📊 ${statements.length}件の発言データを使用して品質評価を実行...`);
-        
-        const qualityResult = await orchestrator.generate([
-          { 
-            role: 'system',
-            content: `あなたはevaluateComprehensiveQualityツールを使用して議論品質を評価する専門家です。ツールの引数は必ずstatementsとcontextの2つのプロパティを持つオブジェクトである必要があります。`
-          },
-          { 
-            role: 'user', 
-            content: `Phase ${phase}の議論データを分析し、evaluateComprehensiveQualityツールで7次元品質評価を実行してください。
-
-ツール実行時は以下の引数構造を厳密に使用してください：
-
-{
-  "statements": ${JSON.stringify(statementsForTool, null, 2)},
-  "context": ${JSON.stringify(contextForTool, null, 2)}
-}
-
-重要: 上記のJSON構造をそのままevaluateComprehensiveQualityツールの引数として使用し、全${statements.length}件の発言データで評価してください。`
-          }
-        ]);
-        console.log(`📊 オーケストレータ品質評価完了: ${qualityResult.text.substring(0, 100)}...`);
+        try {
+          // 直接品質評価を実行（ツール呼び出しエラーを回避）
+          const intermediateQualityMetrics = await qualityEvaluator.evaluateComprehensiveQuality(
+            statements,
+            {
+              topic: inputData.topic,
+              duration: (new Date().getTime() - workflowStartTime.getTime()) / 1000,
+              phase: `Phase ${phase}`,
+              expectedOutcome: 'consensus building'
+            }
+          );
+          
+          console.log(`📊 中間品質評価完了 - 総合スコア: ${(intermediateQualityMetrics.overallQuality * 100).toFixed(1)}%`);
+          console.log(`📊 多様性: ${(intermediateQualityMetrics.contentQuality.semanticDiversity * 100).toFixed(1)}%`);
+          console.log(`📊 一貫性: ${(intermediateQualityMetrics.internalConsistency.logicalCoherence * 100).toFixed(1)}%`);
+          
+        } catch (evaluationError) {
+          console.warn(`⚠️ 中間品質評価でエラーが発生しましたが、処理を続行します: ${evaluationError}`);
+        }
       }
 
       // ⚡ リアルタイム最適化実行
@@ -729,6 +1019,15 @@ const executeAdvancedMBTIDiscussionStep = createStep({
       };
     });
 
+    // 🆕 議論総括の生成
+    console.log(`\n📝 議論総括を生成中...`);
+    const discussionSummary = generateDiscussionSummary(
+      statements,
+      inputData.topic,
+      selectedTypes,
+      finalMetrics
+    );
+
     // 💾 会話保存処理（Mastra UI対応）
     let conversationSaveResult: {
       saved: boolean;
@@ -801,7 +1100,9 @@ const executeAdvancedMBTIDiscussionStep = createStep({
               realtimeOptimization: inputData.enableRealtimeOptimization,
               graphOptimization: inputData.enableGraphOptimization
             }
-          }
+          },
+          // 🆕 議論総括を含める
+          discussionSummary
         };
 
         // ファイル保存実行
@@ -840,11 +1141,13 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         console.error(`❌ 会話保存エラー: ${errorMessage}`);
       }
     }
-
+    
     console.log(`\n🎉 Phase 2 完全版議論完了!`);
     console.log(`📊 総合スコア: ${(comprehensiveScore * 100).toFixed(1)}% (グレード: ${grade})`);
     console.log(`⚡ リアルタイム最適化: ${optimizationCount}回実行`);
     console.log(`📈 品質改善度: ${(totalQualityImprovement * 100).toFixed(1)}%`);
+    console.log(`🔍 主要テーマ: ${discussionSummary.keyThemes.join('、')}`);
+    console.log(`💡 主要洞察: ${discussionSummary.insights.slice(0, 2).join('、')}`);
 
     const result = {
       topic: inputData.topic,
@@ -868,7 +1171,9 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         grade,
         detailedAnalysis: `リアルタイム最適化により品質が${(totalQualityImprovement * 100).toFixed(1)}%向上。特に${Object.entries(finalMetrics).filter(([_, v]) => v >= 0.85).map(([k, _]) => k).join('、')}の項目で高いスコアを達成。`,
         mbtiTypeAnalysis: mbtiAnalysis
-      }
+      },
+      // 🆕 議論総括を追加
+      discussionSummary
     };
 
     // 🆕 会話保存結果を常に追加
@@ -936,6 +1241,16 @@ export const advancedMBTIDiscussionWorkflow = createWorkflow({
         qualityContribution: z.number(),
         characteristicAlignment: z.number()
       }))
+    }),
+    // 🆕 議論総括セクション
+    discussionSummary: z.object({
+      overview: z.string().describe('議論全体の総合概要'),
+      keyThemes: z.array(z.string()).describe('議論で扱われた主要テーマ'),
+      progressAnalysis: z.string().describe('議論の進展パターン分析'),
+      mbtiContributions: z.record(z.string()).describe('MBTIタイプ別の具体的貢献内容'),
+      consensus: z.string().describe('合意形成プロセスの分析'),
+      insights: z.array(z.string()).describe('議論から得られた重要な洞察'),
+      processCharacteristics: z.array(z.string()).describe('議論プロセスの特徴的パターン')
     }),
     // 🆕 会話保存結果
     conversationSaved: z.object({
