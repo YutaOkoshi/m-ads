@@ -11,6 +11,8 @@ import type {
 } from '../types/mbti-types';
 import { ALL_MBTI_TYPES } from '../utils/mbti-characteristics';
 import { saveConversationAsMarkdown, saveConversationAsJson, type ConversationData } from '../utils/conversation-saver';
+// 🆕 実際の品質評価システムをインポート
+import { ComprehensiveQualityEvaluator } from '../utils/comprehensive-quality-evaluator';
 
 // 🔧 ヘルパー関数群（外部定義）
 function selectDiverseMBTITypes(count: number): MBTIType[] {
@@ -224,9 +226,9 @@ class RealtimeOptimizer implements RealtimeOptimizationEngine {
       edges: optimizedEdges,
       clusters: currentGraph.clusters,
       optimizationMetrics: {
-        efficiency: 0.85 + Math.random() * 0.10,
-        cohesion: 0.75 + Math.random() * 0.15,
-        adaptationSpeed: 2.0 + Math.random() * 2.0
+        efficiency: Math.min(0.95, 0.75 + (weights.size / 16) * 0.2),
+        cohesion: Math.min(0.90, 0.65 + (bottlenecks.length === 0 ? 0.25 : (3 - bottlenecks.length) * 0.08)),
+        adaptationSpeed: Math.max(1.0, 4.0 - (weights.size / 16) * 2.0)
       }
     };
   }
@@ -276,6 +278,9 @@ const enhancedConversationSchema = z.object({
     qualityImprovement: z.number()
   })
 });
+
+// 🔧 品質評価エンジンのインスタンス作成
+const qualityEvaluator = new ComprehensiveQualityEvaluator();
 
 // ✨ Phase 2 完全版ステップ（会話保存機能付き）
 const executeAdvancedMBTIDiscussionStep = createStep({
@@ -418,13 +423,23 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         { role: 'user', content: prompt }
       ]);
       
+      // 🔥 実際の内容に基づく評価（Math.random()を撤廃）
+      const contentLength = response.text.length;
+      const hasKeywords = /論理|分析|理由|根拠|証拠|価値|意味|協力|解決|提案/.test(response.text);
+      const actualConfidence = Math.min(0.95, 0.7 + (contentLength / 500) * 0.2 + (hasKeywords ? 0.1 : 0));
+      
+      const topicWords = inputData.topic.toLowerCase().split(/\s+/);
+      const contentWords = response.text.toLowerCase();
+      const relevantMatches = topicWords.filter(word => contentWords.includes(word)).length;
+      const actualRelevance = Math.min(0.95, 0.6 + (relevantMatches / topicWords.length) * 0.3);
+      
       const statement: DiscussionStatement = {
         agentId: `node-${participant.type}`,
         mbtiType: participant.type,
         content: response.text,
         timestamp: new Date(),
-        confidence: 0.8 + Math.random() * 0.2,
-        relevance: 0.7 + Math.random() * 0.3
+        confidence: actualConfidence,
+        relevance: actualRelevance
       };
       
       statements.push(statement);
@@ -438,7 +453,7 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         confidence: statement.confidence,
         relevance: statement.relevance,
         dynamicWeight: participant.weight,
-        qualityContribution: 0.8 + Math.random() * 0.2,
+        qualityContribution: actualConfidence * 0.7 + actualRelevance * 0.3,
         realtimeOptimization: {
           weightAdjustment: 0,
           graphOptimization: false,
@@ -453,44 +468,90 @@ const executeAdvancedMBTIDiscussionStep = createStep({
     for (let phase = 2; phase <= 4; phase++) {
       console.log(`\n===== Phase ${phase}: 反復議論＋リアルタイム最適化 =====`);
       
-      // 📊 中間品質評価
-      if (orchestrator) {
+      // 📊 中間品質評価（オーケストレータツール使用）
+      if (orchestrator && statements.length > 0) {
+        // ツールに必要なパラメーターを構築
+        const statementsForTool = statements.map(s => ({
+          agentId: s.agentId,
+          mbtiType: s.mbtiType,
+          content: s.content,
+          timestamp: s.timestamp.toISOString(),
+          confidence: s.confidence,
+          relevance: s.relevance
+        }));
+        
+        const contextForTool = {
+          topic: inputData.topic,
+          duration: (new Date().getTime() - workflowStartTime.getTime()) / 1000,
+          phase: `Phase ${phase}`,
+          expectedOutcome: 'consensus building'
+        };
+        
+        // 🔥 全データを使用した正確な品質評価（データ削減は行わない）
+        console.log(`📊 ${statements.length}件の発言データを使用して品質評価を実行...`);
+        
         const qualityResult = await orchestrator.generate([
           { 
+            role: 'system',
+            content: `あなたはevaluateComprehensiveQualityツールを使用して議論品質を評価する専門家です。ツールの引数は必ずstatementsとcontextの2つのプロパティを持つオブジェクトである必要があります。`
+          },
+          { 
             role: 'user', 
-            content: `evaluateComprehensiveQualityツールを使用して現在の議論の7次元品質評価を実行してください。` 
+            content: `Phase ${phase}の議論データを分析し、evaluateComprehensiveQualityツールで7次元品質評価を実行してください。
+
+ツール実行時は以下の引数構造を厳密に使用してください：
+
+{
+  "statements": ${JSON.stringify(statementsForTool, null, 2)},
+  "context": ${JSON.stringify(contextForTool, null, 2)}
+}
+
+重要: 上記のJSON構造をそのままevaluateComprehensiveQualityツールの引数として使用し、全${statements.length}件の発言データで評価してください。`
           }
         ]);
-        console.log(`📊 品質評価完了: ${qualityResult.text.substring(0, 100)}...`);
+        console.log(`📊 オーケストレータ品質評価完了: ${qualityResult.text.substring(0, 100)}...`);
       }
 
       // ⚡ リアルタイム最適化実行
       if (inputData.enableRealtimeOptimization && statements.length > 0) {
         console.log(`⚡ リアルタイム最適化実行中...`);
         
-        const mockQualityMetrics: ComprehensiveQualityReport = {
+        // 🔥 実際の品質評価システムを使用（Math.random()を撤廃）
+        console.log(`📊 実際の7次元品質評価を実行中...`);
+        const realQualityMetrics = await qualityEvaluator.evaluateComprehensiveQuality(
+          statements,
+          {
+            topic: inputData.topic,
+            duration: (new Date().getTime() - workflowStartTime.getTime()) / 1000,
+            phase: `Phase ${phase}`,
+            expectedOutcome: 'consensus building'
+          }
+        );
+        
+        // ComprehensiveQualityReport形式に変換
+        const qualityMetrics: ComprehensiveQualityReport = {
           comprehensiveMetrics: {
-            performanceScore: 0.8 + Math.random() * 0.15,
-            psychologicalScore: 0.85 + Math.random() * 0.10,
-            externalAlignmentScore: 0.75 + Math.random() * 0.15,
-            internalConsistencyScore: 0.80 + Math.random() * 0.15,
-            socialDecisionScore: 0.70 + Math.random() * 0.20,
-            contentQualityScore: 0.85 + Math.random() * 0.10,
-            ethicsScore: 0.90 + Math.random() * 0.08,
-            diversityScore: 0.75 + Math.random() * 0.15,
-            consistencyScore: 0.80 + Math.random() * 0.15,
-            convergenceEfficiency: 0.70 + Math.random() * 0.20,
-            mbtiAlignmentScore: 0.85 + Math.random() * 0.10,
-            interactionQuality: 0.82 + Math.random() * 0.12,
-            argumentQuality: 0.78 + Math.random() * 0.15,
-            participationBalance: 0.72 + Math.random() * 0.18,
-            resolutionRate: 0.65 + Math.random() * 0.25
+            performanceScore: realQualityMetrics.performance.overallPerformance,
+            psychologicalScore: realQualityMetrics.psychological.psychologicalRealism,
+            externalAlignmentScore: realQualityMetrics.externalAlignment.externalConsistency,
+            internalConsistencyScore: realQualityMetrics.internalConsistency.internalHarmony,
+            socialDecisionScore: realQualityMetrics.socialDecisionMaking.socialIntelligence,
+            contentQualityScore: realQualityMetrics.contentQuality.argumentQuality,
+            ethicsScore: realQualityMetrics.ethics.ethicalStandard,
+            // 従来メトリクスも実際の評価結果から計算
+            diversityScore: realQualityMetrics.contentQuality.semanticDiversity,
+            consistencyScore: realQualityMetrics.internalConsistency.logicalCoherence,
+            convergenceEfficiency: realQualityMetrics.socialDecisionMaking.consensusBuilding,
+            mbtiAlignmentScore: realQualityMetrics.psychological.personalityConsistency,
+            interactionQuality: realQualityMetrics.socialDecisionMaking.cooperationLevel,
+            argumentQuality: realQualityMetrics.contentQuality.argumentQuality,
+            participationBalance: 0.8, // 実際の参加バランスを後で計算
+            resolutionRate: realQualityMetrics.performance.taskCompletionRate
           },
-          // 他のプロパティは簡略化
-          detailedAnalysis: '',
+          detailedAnalysis: `7次元品質評価による詳細分析完了`,
           recommendations: [],
-          qualityGrade: 'A',
-          overallScore: 0.8
+          qualityGrade: realQualityMetrics.overallQuality >= 0.9 ? 'A' : 'B',
+          overallScore: realQualityMetrics.overallQuality
         };
 
         const mockGraphStructure: GraphStructure = {
@@ -503,7 +564,7 @@ const executeAdvancedMBTIDiscussionStep = createStep({
           discussionPhase: 'analysis',
           topicRelevance: new Map(),
           participationHistory: [],
-          qualityMetrics: mockQualityMetrics.comprehensiveMetrics || {
+          qualityMetrics: qualityMetrics.comprehensiveMetrics || {
             diversityScore: 0.8,
             consistencyScore: 0.8,
             convergenceEfficiency: 0.8,
@@ -518,7 +579,7 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         const optimization = await realtimeOptimizer.optimizeInRealtime(
           statements,
           mockGraphStructure,
-          mockQualityMetrics,
+          qualityMetrics,
           mockContext
         );
 
@@ -557,13 +618,23 @@ const executeAdvancedMBTIDiscussionStep = createStep({
           { role: 'user', content: prompt }
         ]);
         
+        // 🔥 実際の内容に基づく評価（Math.random()を撤廃）
+        const contentLength = response.text.length;
+        const hasKeywords = /論理|分析|理由|根拠|証拠|価値|意味|協力|解決|提案|合意|結論/.test(response.text);
+        const actualConfidence = Math.min(0.95, 0.7 + (contentLength / 500) * 0.2 + (hasKeywords ? 0.1 : 0));
+        
+        const topicWords = inputData.topic.toLowerCase().split(/\s+/);
+        const contentWords = response.text.toLowerCase();
+        const relevantMatches = topicWords.filter(word => contentWords.includes(word)).length;
+        const actualRelevance = Math.min(0.95, 0.6 + (relevantMatches / topicWords.length) * 0.3);
+        
         const statement: DiscussionStatement = {
           agentId: `node-${participant.type}`,
           mbtiType: participant.type,
           content: response.text,
           timestamp: new Date(),
-          confidence: 0.75 + Math.random() * 0.2,
-          relevance: 0.8 + Math.random() * 0.2
+          confidence: actualConfidence,
+          relevance: actualRelevance
         };
         
         statements.push(statement);
@@ -577,7 +648,7 @@ const executeAdvancedMBTIDiscussionStep = createStep({
           confidence: statement.confidence,
           relevance: statement.relevance,
           dynamicWeight: participant.weight,
-          qualityContribution: 0.75 + Math.random() * 0.2,
+          qualityContribution: actualConfidence * 0.7 + actualRelevance * 0.3,
           realtimeOptimization: {
             weightAdjustment: participant.weight - 1.0,
             graphOptimization: graphOptimizations > 0,
@@ -589,42 +660,53 @@ const executeAdvancedMBTIDiscussionStep = createStep({
       }
     }
 
-    // 📊 最終品質評価（7次元）
-    console.log(`\n📊 最終品質評価実行中...`);
+    // 📊 最終品質評価（7次元品質評価システム使用）
+    console.log(`\n📊 最終7次元品質評価実行中...`);
+    
+    const finalQualityEvaluation = await qualityEvaluator.evaluateComprehensiveQuality(
+      statements,
+      {
+        topic: inputData.topic,
+        duration: (new Date().getTime() - workflowStartTime.getTime()) / 1000,
+        phase: 'final',
+        expectedOutcome: 'comprehensive consensus'
+      }
+    );
+    
+    // 参加バランスを実際に計算
+    const participationMap = new Map<string, number>();
+    statements.forEach(s => {
+      participationMap.set(s.mbtiType, (participationMap.get(s.mbtiType) || 0) + 1);
+    });
+    const participationValues = Array.from(participationMap.values());
+    const actualParticipationBalance = participationValues.length > 0 ? 
+      Math.min(...participationValues) / Math.max(...participationValues) : 0.8;
     
     const finalMetrics = {
-      // 7次元品質評価
-      performanceScore: 0.85 + Math.random() * 0.10,
-      psychologicalScore: 0.88 + Math.random() * 0.08,
-      externalAlignmentScore: 0.82 + Math.random() * 0.12,
-      internalConsistencyScore: 0.87 + Math.random() * 0.08,
-      socialDecisionScore: 0.80 + Math.random() * 0.15,
-      contentQualityScore: 0.89 + Math.random() * 0.08,
-      ethicsScore: 0.92 + Math.random() * 0.05,
+      // 7次元品質評価（実際の評価結果）
+      performanceScore: finalQualityEvaluation.performance.overallPerformance,
+      psychologicalScore: finalQualityEvaluation.psychological.psychologicalRealism,
+      externalAlignmentScore: finalQualityEvaluation.externalAlignment.externalConsistency,
+      internalConsistencyScore: finalQualityEvaluation.internalConsistency.internalHarmony,
+      socialDecisionScore: finalQualityEvaluation.socialDecisionMaking.socialIntelligence,
+      contentQualityScore: finalQualityEvaluation.contentQuality.argumentQuality,
+      ethicsScore: finalQualityEvaluation.ethics.ethicalStandard,
       
-      // 従来メトリクス
-      diversityScore: 0.83 + Math.random() * 0.10,
-      consistencyScore: 0.86 + Math.random() * 0.08,
-      convergenceEfficiency: 0.78 + Math.random() * 0.15,
-      mbtiAlignmentScore: 0.89 + Math.random() * 0.06,
-      interactionQuality: 0.87 + Math.random() * 0.08,
+      // 従来メトリクス（実際の評価結果から）
+      diversityScore: finalQualityEvaluation.contentQuality.semanticDiversity,
+      consistencyScore: finalQualityEvaluation.internalConsistency.logicalCoherence,
+      convergenceEfficiency: finalQualityEvaluation.socialDecisionMaking.consensusBuilding,
+      mbtiAlignmentScore: finalQualityEvaluation.psychological.personalityConsistency,
+      interactionQuality: finalQualityEvaluation.socialDecisionMaking.cooperationLevel,
       
-      // 新規メトリクス
-      argumentQuality: 0.84 + Math.random() * 0.10,
-      participationBalance: 0.79 + Math.random() * 0.15,
-      resolutionRate: 0.76 + Math.random() * 0.18
+      // 新規メトリクス（実際の計算結果）
+      argumentQuality: finalQualityEvaluation.contentQuality.argumentQuality,
+      participationBalance: actualParticipationBalance,
+      resolutionRate: finalQualityEvaluation.performance.taskCompletionRate
     };
 
-    // 📈 総合スコア計算（7次元重み付き）
-    const comprehensiveScore = (
-      finalMetrics.performanceScore * 0.15 +
-      finalMetrics.psychologicalScore * 0.15 +
-      finalMetrics.externalAlignmentScore * 0.10 +
-      finalMetrics.internalConsistencyScore * 0.15 +
-      finalMetrics.socialDecisionScore * 0.15 +
-      finalMetrics.contentQualityScore * 0.15 +
-      finalMetrics.ethicsScore * 0.15
-    );
+    // 📈 総合スコア計算（実際の7次元品質評価結果を使用）
+    const comprehensiveScore = finalQualityEvaluation.overallQuality;
 
     // 🏆 グレード算出
     let grade: string;
@@ -643,7 +725,7 @@ const executeAdvancedMBTIDiscussionStep = createStep({
       mbtiAnalysis[type] = {
         participationRate: typeStatements.length / statements.length,
         qualityContribution: typeStatements.reduce((sum, s) => sum + s.confidence, 0) / typeStatements.length,
-        characteristicAlignment: 0.85 + Math.random() * 0.10
+        characteristicAlignment: finalQualityEvaluation.psychological.personalityConsistency
       };
     });
 
