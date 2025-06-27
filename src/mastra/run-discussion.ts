@@ -97,7 +97,10 @@ async function runDiscussion(): Promise<void> {
         participantCount: config.participantCount,
         enableRealtimeOptimization: config.enableRealtimeOptimization,
         enableGraphOptimization: config.enableGraphOptimization,
-        qualityThreshold: config.qualityThreshold
+        qualityThreshold: config.qualityThreshold,
+        saveConversation: config.saveConversation,
+        outputFormat: config.outputFormat as 'markdown' | 'json',
+        outputDirectory: config.outputDir
       }
     });
 

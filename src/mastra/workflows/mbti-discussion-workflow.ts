@@ -789,15 +789,11 @@ const executeAdvancedMBTIDiscussionStep = createStep({
       }
     };
 
-    // 🆕 会話保存結果を追加
-    if (inputData.saveConversation) {
-      return {
-        ...result,
-        conversationSaved: conversationSaveResult
-      };
-    }
-
-    return result;
+    // 🆕 会話保存結果を常に追加
+    return {
+      ...result,
+      conversationSaved: conversationSaveResult
+    };
   }
 });
 
@@ -810,7 +806,11 @@ export const advancedMBTIDiscussionWorkflow = createWorkflow({
     participantCount: z.number().min(4).max(16).default(8),
     enableRealtimeOptimization: z.boolean().default(true),
     enableGraphOptimization: z.boolean().default(true),
-    qualityThreshold: z.number().min(0.5).max(1.0).default(0.8)
+    qualityThreshold: z.number().min(0.5).max(1.0).default(0.8),
+    // 🆕 会話保存オプション
+    saveConversation: z.boolean().default(true).describe('Save conversation to file'),
+    outputFormat: z.enum(['markdown', 'json']).default('markdown').describe('Output format for saved conversation'),
+    outputDirectory: z.string().default('./conversations').describe('Directory to save conversation files')
   }),
   outputSchema: z.object({
     topic: z.string(),
@@ -854,6 +854,14 @@ export const advancedMBTIDiscussionWorkflow = createWorkflow({
         qualityContribution: z.number(),
         characteristicAlignment: z.number()
       }))
+    }),
+    // 🆕 会話保存結果
+    conversationSaved: z.object({
+      saved: z.boolean(),
+      filePath: z.string().optional(),
+      fileSize: z.string().optional(),
+      format: z.string().optional(),
+      error: z.string().optional()
     })
   })
 })

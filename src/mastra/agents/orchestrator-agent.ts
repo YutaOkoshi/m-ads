@@ -15,6 +15,9 @@ import {
 } from '../tools/weight-adjuster-tool';
 import {
   evaluateDiscussionQualityTool,
+  evaluateComprehensiveQualityTool,
+  analyzeArgumentDiversityTool,
+  trackConsensusEvolutionTool,
   compareQualityMetricsTool,
   generateQualityReportTool
 } from '../tools/quality-evaluator-tool';
@@ -40,14 +43,21 @@ export const orchestratorAgent = new Agent({
 【使用可能なツール】
 1. グラフ管理: initializeGraph, addAgentToGraph, updateAgentWeight, getGraphMetrics, optimizeGraphTopology
 2. 重み調整: calculateAgentWeight, recordInteraction, adjustAllAgentWeights, getWeightDistribution, resetInteractionHistory
-3. 品質評価: evaluateDiscussionQuality, compareQualityMetrics, generateQualityReport
+3. 品質評価: 
+   - evaluateDiscussionQuality: 基本的な議論品質評価
+   - evaluateComprehensiveQuality: 7次元RPA品質評価（Performance, Psychological, External Alignment, Internal Consistency, Social Decision-making, Content Quality, Ethics）
+   - analyzeArgumentDiversity: 引数多様性・視点分析
+   - trackConsensusEvolution: 合意形成進化の追跡
+   - compareQualityMetrics: 品質メトリクス比較
+   - generateQualityReport: 総合品質レポート生成
 
 【議論管理プロセス】
 1. グラフを初期化し、MBTIエージェントを追加
 2. 議論フェーズに応じて重みを動的調整
 3. 各エージェントの発言を記録し、品質を評価
 4. 必要に応じてグラフトポロジーを最適化
-5. 最終的な品質レポートを生成
+5. 7次元品質評価による詳細分析
+6. 最終的な品質レポートを生成
 
 常に公平で効率的な議論を心がけ、すべてのMBTIタイプの視点が適切に反映されるよう調整してください。`,
   model: createBedrockModel(MBTI_MODEL_PREFERENCES.ORCHESTRATOR),
@@ -66,8 +76,11 @@ export const orchestratorAgent = new Agent({
     getWeightDistribution: getWeightDistributionTool,
     resetInteractionHistory: resetInteractionHistoryTool,
     
-    // 品質評価ツール
+    // 品質評価ツール（完全版）
     evaluateDiscussionQuality: evaluateDiscussionQualityTool,
+    evaluateComprehensiveQuality: evaluateComprehensiveQualityTool,
+    analyzeArgumentDiversity: analyzeArgumentDiversityTool,
+    trackConsensusEvolution: trackConsensusEvolutionTool,
     compareQualityMetrics: compareQualityMetricsTool,
     generateQualityReport: generateQualityReportTool
   }

@@ -1,5 +1,5 @@
-import { writeFileSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join, resolve } from 'path';
 import type { MBTIType, DiscussionTurn, ComprehensiveQualityReport } from '../types/mbti-types';
 
 /**
@@ -64,27 +64,47 @@ export function saveConversationAsMarkdown(
   data: ConversationData,
   outputDir: string = './conversations'
 ): string {
+  console.log(`🔧 会話保存開始 - 出力ディレクトリ: ${outputDir}`);
+  
+  // 絶対パスに解決
+  const resolvedOutputDir = resolve(outputDir);
+  console.log(`📁 解決されたパス: ${resolvedOutputDir}`);
+
   // 出力ディレクトリ作成
   try {
-    mkdirSync(outputDir, { recursive: true });
+    if (!existsSync(resolvedOutputDir)) {
+      console.log(`📂 ディレクトリを作成中: ${resolvedOutputDir}`);
+      mkdirSync(resolvedOutputDir, { recursive: true });
+      console.log(`✅ ディレクトリ作成成功`);
+    } else {
+      console.log(`✅ ディレクトリは既に存在します`);
+    }
   } catch (error) {
-    console.warn(`Directory creation warning: ${error}`);
+    console.error(`❌ ディレクトリ作成エラー:`, error);
+    throw new Error(`Failed to create directory: ${error}`);
   }
 
   // ファイル名生成
   const timestamp = data.startTime.toISOString().slice(0, 19).replace(/[:-]/g, '');
   const topicSafe = sanitizeFileName(data.topic);
   const fileName = `discussion_${timestamp}_${topicSafe}.md`;
-  const filePath = join(outputDir, fileName);
+  const filePath = join(resolvedOutputDir, fileName);
+  
+  console.log(`📝 ファイルパス: ${filePath}`);
 
   // Markdownコンテンツ生成
+  console.log(`📄 コンテンツ生成中...`);
   const content = generateMarkdownContent(data);
+  console.log(`📄 コンテンツサイズ: ${content.length} 文字`);
 
   // ファイル保存
   try {
+    console.log(`💾 ファイル書き込み中...`);
     writeFileSync(filePath, content, 'utf8');
+    console.log(`✅ ファイル保存成功: ${filePath}`);
     return filePath;
   } catch (error) {
+    console.error(`❌ ファイル保存エラー:`, error);
     throw new Error(`Failed to save conversation: ${error}`);
   }
 }
@@ -236,25 +256,46 @@ export function saveConversationAsJson(
   data: ConversationData,
   outputDir: string = './conversations'
 ): string {
+  console.log(`🔧 JSON会話保存開始 - 出力ディレクトリ: ${outputDir}`);
+  
+  // 絶対パスに解決
+  const resolvedOutputDir = resolve(outputDir);
+  console.log(`📁 解決されたパス: ${resolvedOutputDir}`);
+
   // 出力ディレクトリ作成
   try {
-    mkdirSync(outputDir, { recursive: true });
+    if (!existsSync(resolvedOutputDir)) {
+      console.log(`📂 ディレクトリを作成中: ${resolvedOutputDir}`);
+      mkdirSync(resolvedOutputDir, { recursive: true });
+      console.log(`✅ ディレクトリ作成成功`);
+    } else {
+      console.log(`✅ ディレクトリは既に存在します`);
+    }
   } catch (error) {
-    console.warn(`Directory creation warning: ${error}`);
+    console.error(`❌ ディレクトリ作成エラー:`, error);
+    throw new Error(`Failed to create directory: ${error}`);
   }
 
   // ファイル名生成
   const timestamp = data.startTime.toISOString().slice(0, 19).replace(/[:-]/g, '');
   const topicSafe = sanitizeFileName(data.topic);
   const fileName = `discussion_${timestamp}_${topicSafe}.json`;
-  const filePath = join(outputDir, fileName);
+  const filePath = join(resolvedOutputDir, fileName);
+  
+  console.log(`📝 JSONファイルパス: ${filePath}`);
 
   // JSON保存
   try {
+    console.log(`📄 JSON変換中...`);
     const jsonContent = JSON.stringify(data, null, 2);
+    console.log(`📄 JSONサイズ: ${jsonContent.length} 文字`);
+    
+    console.log(`💾 JSONファイル書き込み中...`);
     writeFileSync(filePath, jsonContent, 'utf8');
+    console.log(`✅ JSONファイル保存成功: ${filePath}`);
     return filePath;
   } catch (error) {
+    console.error(`❌ JSON保存エラー:`, error);
     throw new Error(`Failed to save conversation as JSON: ${error}`);
   }
 } 
