@@ -1,11 +1,13 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { DiscussionGraph } from '../utils/graph-utils';
+import type { 
+  GraphStructure, 
+  InteractionHistory 
+} from '../utils/graph-topology-optimizer';
 import { 
   GraphTopologyOptimizer, 
-  GraphStructure, 
-  PerformanceMetrics, 
-  InteractionHistory 
+  PerformanceMetrics 
 } from '../utils/graph-topology-optimizer';
 import type { MBTIType } from '../types/mbti-types';
 

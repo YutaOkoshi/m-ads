@@ -384,6 +384,51 @@ export function getGroupFromType(type: MBTIType): MBTIGroup {
   return char?.group || 'NT';
 }
 
+// MBTI認知機能マッピング
+export const MBTI_COGNITIVE_FUNCTIONS: Record<MBTIType, {
+  dominant: string;
+  auxiliary: string;
+  tertiary: string;
+  inferior: string;
+}> = {
+  INTJ: { dominant: 'Ni', auxiliary: 'Te', tertiary: 'Fi', inferior: 'Se' },
+  INTP: { dominant: 'Ti', auxiliary: 'Ne', tertiary: 'Si', inferior: 'Fe' },
+  ENTJ: { dominant: 'Te', auxiliary: 'Ni', tertiary: 'Se', inferior: 'Fi' },
+  ENTP: { dominant: 'Ne', auxiliary: 'Ti', tertiary: 'Fe', inferior: 'Si' },
+  INFJ: { dominant: 'Ni', auxiliary: 'Fe', tertiary: 'Ti', inferior: 'Se' },
+  INFP: { dominant: 'Fi', auxiliary: 'Ne', tertiary: 'Si', inferior: 'Te' },
+  ENFJ: { dominant: 'Fe', auxiliary: 'Ni', tertiary: 'Se', inferior: 'Ti' },
+  ENFP: { dominant: 'Ne', auxiliary: 'Fi', tertiary: 'Te', inferior: 'Si' },
+  ISTJ: { dominant: 'Si', auxiliary: 'Te', tertiary: 'Fi', inferior: 'Ne' },
+  ISFJ: { dominant: 'Si', auxiliary: 'Fe', tertiary: 'Ti', inferior: 'Ne' },
+  ESTJ: { dominant: 'Te', auxiliary: 'Si', tertiary: 'Ne', inferior: 'Fi' },
+  ESFJ: { dominant: 'Fe', auxiliary: 'Si', tertiary: 'Ne', inferior: 'Ti' },
+  ISTP: { dominant: 'Ti', auxiliary: 'Se', tertiary: 'Ni', inferior: 'Fe' },
+  ISFP: { dominant: 'Fi', auxiliary: 'Se', tertiary: 'Ni', inferior: 'Te' },
+  ESTP: { dominant: 'Se', auxiliary: 'Ti', tertiary: 'Fe', inferior: 'Ni' },
+  ESFP: { dominant: 'Se', auxiliary: 'Fi', tertiary: 'Te', inferior: 'Ni' }
+};
+
+// MBTI相性マトリックス（0-1の相性スコア）
+export const MBTI_COMPATIBILITY_MATRIX: Record<MBTIType, Record<MBTIType, number>> = {
+  INTJ: { INTJ: 0.8, INTP: 0.9, ENTJ: 0.7, ENTP: 0.8, INFJ: 0.6, INFP: 0.5, ENFJ: 0.4, ENFP: 0.6, ISTJ: 0.5, ISFJ: 0.3, ESTJ: 0.6, ESFJ: 0.2, ISTP: 0.7, ISFP: 0.4, ESTP: 0.5, ESFP: 0.3 },
+  INTP: { INTJ: 0.9, INTP: 0.8, ENTJ: 0.8, ENTP: 0.9, INFJ: 0.7, INFP: 0.6, ENFJ: 0.5, ENFP: 0.7, ISTJ: 0.4, ISFJ: 0.3, ESTJ: 0.5, ESFJ: 0.2, ISTP: 0.8, ISFP: 0.5, ESTP: 0.6, ESFP: 0.4 },
+  ENTJ: { INTJ: 0.7, INTP: 0.8, ENTJ: 0.8, ENTP: 0.9, INFJ: 0.5, INFP: 0.4, ENFJ: 0.6, ENFP: 0.7, ISTJ: 0.6, ISFJ: 0.4, ESTJ: 0.8, ESFJ: 0.5, ISTP: 0.6, ISFP: 0.3, ESTP: 0.7, ESFP: 0.5 },
+  ENTP: { INTJ: 0.8, INTP: 0.9, ENTJ: 0.9, ENTP: 0.8, INFJ: 0.6, INFP: 0.7, ENFJ: 0.7, ENFP: 0.8, ISTJ: 0.3, ISFJ: 0.4, ESTJ: 0.6, ESFJ: 0.5, ISTP: 0.7, ISFP: 0.6, ESTP: 0.8, ESFP: 0.7 },
+  INFJ: { INTJ: 0.6, INTP: 0.7, ENTJ: 0.5, ENTP: 0.6, INFJ: 0.9, INFP: 0.8, ENFJ: 0.8, ENFP: 0.7, ISTJ: 0.4, ISFJ: 0.6, ESTJ: 0.3, ESFJ: 0.5, ISTP: 0.5, ISFP: 0.7, ESTP: 0.4, ESFP: 0.6 },
+  INFP: { INTJ: 0.5, INTP: 0.6, ENTJ: 0.4, ENTP: 0.7, INFJ: 0.8, INFP: 0.8, ENFJ: 0.7, ENFP: 0.9, ISTJ: 0.3, ISFJ: 0.5, ESTJ: 0.2, ESFJ: 0.4, ISTP: 0.6, ISFP: 0.8, ESTP: 0.5, ESFP: 0.7 },
+  ENFJ: { INTJ: 0.4, INTP: 0.5, ENTJ: 0.6, ENTP: 0.7, INFJ: 0.8, INFP: 0.7, ENFJ: 0.8, ENFP: 0.8, ISTJ: 0.5, ISFJ: 0.7, ESTJ: 0.6, ESFJ: 0.8, ISTP: 0.4, ISFP: 0.6, ESTP: 0.6, ESFP: 0.8 },
+  ENFP: { INTJ: 0.6, INTP: 0.7, ENTJ: 0.7, ENTP: 0.8, INFJ: 0.7, INFP: 0.9, ENFJ: 0.8, ENFP: 0.8, ISTJ: 0.3, ISFJ: 0.5, ESTJ: 0.5, ESFJ: 0.7, ISTP: 0.5, ISFP: 0.7, ESTP: 0.7, ESFP: 0.8 },
+  ISTJ: { INTJ: 0.5, INTP: 0.4, ENTJ: 0.6, ENTP: 0.3, INFJ: 0.4, INFP: 0.3, ENFJ: 0.5, ENFP: 0.3, ISTJ: 0.8, ISFJ: 0.7, ESTJ: 0.8, ESFJ: 0.6, ISTP: 0.6, ISFP: 0.5, ESTP: 0.5, ESFP: 0.4 },
+  ISFJ: { INTJ: 0.3, INTP: 0.3, ENTJ: 0.4, ENTP: 0.4, INFJ: 0.6, INFP: 0.5, ENFJ: 0.7, ENFP: 0.5, ISTJ: 0.7, ISFJ: 0.8, ESTJ: 0.6, ESFJ: 0.8, ISTP: 0.5, ISFP: 0.6, ESTP: 0.4, ESFP: 0.6 },
+  ESTJ: { INTJ: 0.6, INTP: 0.5, ENTJ: 0.8, ENTP: 0.6, INFJ: 0.3, INFP: 0.2, ENFJ: 0.6, ENFP: 0.5, ISTJ: 0.8, ISFJ: 0.6, ESTJ: 0.8, ESFJ: 0.7, ISTP: 0.5, ISFP: 0.3, ESTP: 0.6, ESFP: 0.5 },
+  ESFJ: { INTJ: 0.2, INTP: 0.2, ENTJ: 0.5, ENTP: 0.5, INFJ: 0.5, INFP: 0.4, ENFJ: 0.8, ENFP: 0.7, ISTJ: 0.6, ISFJ: 0.8, ESTJ: 0.7, ESFJ: 0.8, ISTP: 0.3, ISFP: 0.5, ESTP: 0.5, ESFP: 0.7 },
+  ISTP: { INTJ: 0.7, INTP: 0.8, ENTJ: 0.6, ENTP: 0.7, INFJ: 0.5, INFP: 0.6, ENFJ: 0.4, ENFP: 0.5, ISTJ: 0.6, ISFJ: 0.5, ESTJ: 0.5, ESFJ: 0.3, ISTP: 0.8, ISFP: 0.7, ESTP: 0.8, ESFP: 0.6 },
+  ISFP: { INTJ: 0.4, INTP: 0.5, ENTJ: 0.3, ENTP: 0.6, INFJ: 0.7, INFP: 0.8, ENFJ: 0.6, ENFP: 0.7, ISTJ: 0.5, ISFJ: 0.6, ESTJ: 0.3, ESFJ: 0.5, ISTP: 0.7, ISFP: 0.8, ESTP: 0.6, ESFP: 0.7 },
+  ESTP: { INTJ: 0.5, INTP: 0.6, ENTJ: 0.7, ENTP: 0.8, INFJ: 0.4, INFP: 0.5, ENFJ: 0.6, ENFP: 0.7, ISTJ: 0.5, ISFJ: 0.4, ESTJ: 0.6, ESFJ: 0.5, ISTP: 0.8, ISFP: 0.6, ESTP: 0.8, ESFP: 0.8 },
+  ESFP: { INTJ: 0.3, INTP: 0.4, ENTJ: 0.5, ENTP: 0.7, INFJ: 0.6, INFP: 0.7, ENFJ: 0.8, ENFP: 0.8, ISTJ: 0.4, ISFJ: 0.6, ESTJ: 0.5, ESFJ: 0.7, ISTP: 0.6, ISFP: 0.7, ESTP: 0.8, ESFP: 0.8 }
+};
+
 export function calculateDynamicWeight(
   type: MBTIType,
   phase: string,
@@ -392,9 +437,9 @@ export function calculateDynamicWeight(
   const baseWeight = MBTI_CHARACTERISTICS[type]?.weight || 1.0;
   const group = getGroupFromType(type);
   const phaseModifier = PHASE_WEIGHT_MODIFIERS[phase]?.[group] || 1.0;
-  
+
   // 過去の相互作用に基づく調整（発言が多すぎる場合は重みを下げる）
   const interactionModifier = Math.max(0.5, 1.0 - (previousInteractions * 0.1));
-  
+
   return baseWeight * phaseModifier * interactionModifier;
-} 
+}

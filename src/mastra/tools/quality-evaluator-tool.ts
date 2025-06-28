@@ -2,9 +2,11 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import type { DiscussionStatement, QualityMetrics } from '../types/mbti-types';
 import { MBTI_CHARACTERISTICS } from '../utils/mbti-characteristics';
-import { 
-  ComprehensiveQualityEvaluator, 
+import type { 
   SevenDimensionQualityMetrics 
+} from '../utils/comprehensive-quality-evaluator';
+import { 
+  ComprehensiveQualityEvaluator 
 } from '../utils/comprehensive-quality-evaluator';
 
 // 7次元品質評価エンジンのインスタンス
@@ -832,7 +834,7 @@ function generateDiversityRecommendations(diversity: any) {
 function trackConsensusTimeline(statements: DiscussionStatement[]) {
   const timelineData: TimelineDataPoint[] = [];
   let cumulativeConsensus = 0.5;
-  let cumulativeParticipation = new Map<string, number>();
+  const cumulativeParticipation = new Map<string, number>();
   
   statements.forEach((statement, index) => {
     // 合意レベルの追跡

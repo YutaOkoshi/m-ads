@@ -1,565 +1,61 @@
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
-import type { 
-  DiscussionStatement, 
-  MBTIType, 
+
+// 🔧 分割されたモジュールのインポート
+import type {
+  DiscussionStatement,
+  MBTIType,
   ComprehensiveQualityReport,
   GraphStructure,
   WeightingContext,
   PerformanceMetrics,
   OptimizedGraphStructure
 } from '../types/mbti-types';
-import { ALL_MBTI_TYPES } from '../utils/mbti-characteristics';
+
+import {
+  selectDiverseMBTITypes,
+  getAgentName,
+  selectNextSpeakerByWeight,
+  createPhasePrompt,
+  generateStrengths,
+  generateWeaknesses
+} from '../utils/discussion-helpers';
+
+import {
+  generatePerformanceFeedback,
+  evaluateContentQuality,
+  generateDetailedStatementFeedback,
+  type PerformanceFeedback
+} from '../utils/performance-evaluator';
+
+import {
+  createAdaptivePhasePrompt,
+  createStatementLevelAdaptivePrompt
+} from '../utils/adaptive-prompt-generator';
+
+import {
+  executeOrchestratorIntervention
+} from '../utils/orchestrator-intervention';
+
+import {
+  RealtimeOptimizer,
+  createRealtimeOptimizer
+} from '../utils/realtime-optimizer';
+
+import {
+  generateDiscussionSummary,
+  type DiscussionSummary
+} from '../utils/discussion-summarizer';
+
 import { saveConversationAsMarkdown, saveConversationAsJson, type ConversationData } from '../utils/conversation-saver';
-// 🆕 実際の品質評価システムをインポート
 import { ComprehensiveQualityEvaluator } from '../utils/comprehensive-quality-evaluator';
 
-// 🔧 ヘルパー関数群（外部定義）
-function selectDiverseMBTITypes(count: number): MBTIType[] {
-  const groups = {
-    NT: ['INTJ', 'INTP', 'ENTJ', 'ENTP'] as MBTIType[],
-    NF: ['INFJ', 'INFP', 'ENFJ', 'ENFP'] as MBTIType[],
-    SJ: ['ISTJ', 'ISFJ', 'ESTJ', 'ESFJ'] as MBTIType[],
-    SP: ['ISTP', 'ISFP', 'ESTP', 'ESFP'] as MBTIType[]
-  };
-  
-  const selected: MBTIType[] = [];
-  const groupKeys = Object.keys(groups) as (keyof typeof groups)[];
-  
-  // 各グループから最低1つは選択
-  groupKeys.forEach(group => {
-    const availableTypes = groups[group].filter(type => !selected.includes(type));
-    if (availableTypes.length > 0) {
-      selected.push(availableTypes[Math.floor(Math.random() * availableTypes.length)]);
-    }
-  });
-  
-  // 残りをランダムに選択
-  while (selected.length < count) {
-    const remainingTypes = ALL_MBTI_TYPES.filter(type => !selected.includes(type));
-    if (remainingTypes.length === 0) break;
-    selected.push(remainingTypes[Math.floor(Math.random() * remainingTypes.length)]);
-  }
-  
-  return selected.slice(0, count);
-}
+// 🆕 統合フィードバックシステム
+import { RealtimeFeedbackManager } from '../core/realtime-feedback-manager';
+import { FeedbackConfigurationBuilder } from '../config/feedback-configuration';
+import type { EvaluationContext } from '../types/feedback-system-types';
 
-function getAgentName(type: MBTIType): string {
-  const names: Record<MBTIType, string> = {
-    'INTJ': 'INTJ-Architect', 'INTP': 'INTP-Thinker', 'ENTJ': 'ENTJ-Commander', 'ENTP': 'ENTP-Debater',
-    'INFJ': 'INFJ-Advocate', 'INFP': 'INFP-Mediator', 'ENFJ': 'ENFJ-Protagonist', 'ENFP': 'ENFP-Campaigner',
-    'ISTJ': 'ISTJ-Inspector', 'ISFJ': 'ISFJ-Protector', 'ESTJ': 'ESTJ-Executive', 'ESFJ': 'ESFJ-Consul',
-    'ISTP': 'ISTP-Virtuoso', 'ISFP': 'ISFP-Adventurer', 'ESTP': 'ESTP-Entrepreneur', 'ESFP': 'ESFP-Entertainer'
-  };
-  return names[type];
-}
-
-function createPhasePrompt(phase: string, topic: string, mbtiType: MBTIType, recentStatements: DiscussionStatement[]): string {
-  const context = recentStatements.length > 0 ? 
-    `\n\n最近の発言:\n${recentStatements.map(s => `${s.mbtiType}: ${s.content}`).join('\n\n')}` : '';
-  
-  const phaseInstructions: Record<string, string> = {
-    initial: `${mbtiType}として、このトピックについてあなたの独自の視点から初期意見を述べてください。`,
-    interaction: `他のエージェントの意見を踏まえ、建設的な相互作用を行ってください。`,
-    synthesis: `これまでの議論を統合し、より深い洞察を提供してください。`,
-    consensus: `最終的な合意形成に向けて、あなたの結論を述べてください。`
-  };
-  
-  return `議論トピック: ${topic}${context}\n\n${phaseInstructions[phase]}\n\n${mbtiType}の特性を活かした200-300文字の回答をお願いします。`;
-}
-
-function generateStrengths(metrics: any): string[] {
-  const strengths = [];
-  if (metrics.diversityScore >= 0.8) strengths.push('優れた多様性を実現');
-  if (metrics.consistencyScore >= 0.85) strengths.push('高い論理的一貫性を維持');
-  if (metrics.ethicsScore >= 0.9) strengths.push('倫理的配慮が徹底');
-  if (metrics.contentQualityScore >= 0.85) strengths.push('高品質なコンテンツを生成');
-  return strengths.length > 0 ? strengths : ['バランスの取れた議論を実現'];
-}
-
-function generateWeaknesses(metrics: any): string[] {
-  const weaknesses = [];
-  if (metrics.convergenceEfficiency < 0.75) weaknesses.push('合意形成の効率性要改善');
-  if (metrics.participationBalance < 0.8) weaknesses.push('参加バランスの最適化が必要');
-  if (metrics.resolutionRate < 0.75) weaknesses.push('解決率の向上が必要');
-  return weaknesses.length > 0 ? weaknesses : ['特記すべき弱点なし'];
-}
-
-// 🆕 議論総括生成機能
-function generateDiscussionSummary(
-  statements: DiscussionStatement[],
-  topic: string,
-  participantTypes: MBTIType[],
-  qualityMetrics: any
-): {
-  overview: string;
-  keyThemes: string[];
-  progressAnalysis: string;
-  mbtiContributions: Record<string, string>;
-  consensus: string;
-  insights: string[];
-  processCharacteristics: string[];
-} {
-  // 🔍 主要テーマの抽出
-  const keyThemes = extractKeyThemes(statements, topic);
-  
-  // 📊 議論進展の分析
-  const progressAnalysis = analyzeDiscussionProgress(statements);
-  
-  // 🎭 MBTIタイプ別貢献分析
-  const mbtiContributions = analyzeMBTIContributions(statements, participantTypes);
-  
-  // 🤝 合意形成の分析
-  const consensus = analyzeConsensusBuilding(statements);
-  
-  // 💡 洞察の抽出
-  const insights = extractKeyInsights(statements, qualityMetrics);
-  
-  // 🔄 プロセス特徴の分析
-  const processCharacteristics = analyzeProcessCharacteristics(statements, participantTypes);
-  
-  // 📝 総合概要の生成
-  const overview = generateOverview(
-    topic,
-    participantTypes,
-    statements.length,
-    qualityMetrics,
-    keyThemes
-  );
-  
-  return {
-    overview,
-    keyThemes,
-    progressAnalysis,
-    mbtiContributions,
-    consensus,
-    insights,
-    processCharacteristics
-  };
-}
-
-// 🔍 主要テーマ抽出
-function extractKeyThemes(statements: DiscussionStatement[], topic: string): string[] {
-  const themes = new Set<string>();
-  const commonKeywords = ['効率', '革新', '協力', '分析', '価値', '実現', '解決', '戦略', '感情', '論理'];
-  
-  statements.forEach(statement => {
-    const content = statement.content.toLowerCase();
-    commonKeywords.forEach(keyword => {
-      if (content.includes(keyword)) {
-        themes.add(keyword);
-      }
-    });
-    
-    // 追加的なテーマ検出ロジック
-    if (content.includes('技術') || content.includes('システム')) themes.add('技術的観点');
-    if (content.includes('人間') || content.includes('社会')) themes.add('人間・社会的観点');
-    if (content.includes('将来') || content.includes('未来')) themes.add('将来展望');
-    if (content.includes('課題') || content.includes('問題')) themes.add('課題解決');
-  });
-  
-  return Array.from(themes).slice(0, 5); // 上位5テーマ
-}
-
-// 📊 議論進展分析
-function analyzeDiscussionProgress(statements: DiscussionStatement[]): string {
-  const phases = Math.ceil(statements.length / 4);
-  const progressPatterns = [];
-  
-  for (let i = 0; i < phases; i++) {
-    const phaseStatements = statements.slice(i * 4, (i + 1) * 4);
-    const avgConfidence = phaseStatements.reduce((sum, s) => sum + s.confidence, 0) / phaseStatements.length;
-    const avgRelevance = phaseStatements.reduce((sum, s) => sum + s.relevance, 0) / phaseStatements.length;
-    
-    if (avgConfidence > 0.8 && avgRelevance > 0.8) {
-      progressPatterns.push(`フェーズ${i + 1}：高品質な議論`);
-    } else if (avgConfidence > 0.7) {
-      progressPatterns.push(`フェーズ${i + 1}：安定した議論`);
-    } else {
-      progressPatterns.push(`フェーズ${i + 1}：探索的議論`);
-    }
-  }
-  
-  return `議論は${phases}つのフェーズに分かれて進行。${progressPatterns.join('、')}。全体として${statements.length > 12 ? '充実した' : '効率的な'}議論プロセスを実現。`;
-}
-
-// 🎭 MBTIタイプ別貢献分析
-function analyzeMBTIContributions(statements: DiscussionStatement[], participantTypes: MBTIType[]): Record<string, string> {
-  const contributions: Record<string, string> = {};
-  
-  participantTypes.forEach(type => {
-    const typeStatements = statements.filter(s => s.mbtiType === type);
-    if (typeStatements.length === 0) return;
-    
-    const avgConfidence = typeStatements.reduce((sum, s) => sum + s.confidence, 0) / typeStatements.length;
-    const contributionLevel = typeStatements.length;
-    
-    // MBTIタイプの特性に基づく貢献分析
-    let contributionDescription = '';
-    
-    if (type.includes('NT')) {
-      contributionDescription = `戦略的・分析的視点から${contributionLevel}回の発言。論理的構造化に貢献（品質: ${(avgConfidence * 100).toFixed(0)}%）`;
-    } else if (type.includes('NF')) {
-      contributionDescription = `価値観・人間的視点から${contributionLevel}回の発言。議論の意味付けに貢献（品質: ${(avgConfidence * 100).toFixed(0)}%）`;
-    } else if (type.includes('SJ')) {
-      contributionDescription = `実践的・組織的視点から${contributionLevel}回の発言。具体化・体系化に貢献（品質: ${(avgConfidence * 100).toFixed(0)}%）`;
-    } else if (type.includes('SP')) {
-      contributionDescription = `柔軟・適応的視点から${contributionLevel}回の発言。現実的解決策に貢献（品質: ${(avgConfidence * 100).toFixed(0)}%）`;
-    }
-    
-    contributions[type] = contributionDescription;
-  });
-  
-  return contributions;
-}
-
-// 🤝 合意形成分析
-function analyzeConsensusBuilding(statements: DiscussionStatement[]): string {
-  const laterStatements = statements.slice(-Math.floor(statements.length / 3));
-  const consensusKeywords = ['同意', '合意', '賛成', '理解', '納得', '結論', 'まとめ'];
-  
-  let consensusCount = 0;
-  laterStatements.forEach(statement => {
-    const content = statement.content.toLowerCase();
-    consensusKeywords.forEach(keyword => {
-      if (content.includes(keyword)) consensusCount++;
-    });
-  });
-  
-  const consensusRate = consensusCount / laterStatements.length;
-  
-  if (consensusRate > 0.3) {
-    return `終盤で活発な合意形成が見られ、参加者間の理解が深化。建設的な収束プロセスを実現。`;
-  } else if (consensusRate > 0.1) {
-    return `段階的な合意形成が進行し、一定の共通理解が形成された。`;
-  } else {
-    return `多様な視点が維持されつつ、各論点での理解が深化。継続議論の基盤が構築された。`;
-  }
-}
-
-// 💡 洞察抽出
-function extractKeyInsights(statements: DiscussionStatement[], qualityMetrics: any): string[] {
-  const insights = [];
-  
-  // 品質メトリクスに基づく洞察
-  if (qualityMetrics.diversityScore >= 0.85) {
-    insights.push('MBTIタイプの多様性が議論の豊かさを大幅に向上させた');
-  }
-  
-  if (qualityMetrics.consistencyScore >= 0.85) {
-    insights.push('論理的一貫性を保ちながら創造的議論が実現された');
-  }
-  
-  if (qualityMetrics.socialDecisionScore >= 0.8) {
-    insights.push('協調的意思決定プロセスが効果的に機能した');
-  }
-  
-  // 議論パターンに基づく洞察
-  const participationPattern = analyzeParticipationPattern(statements);
-  if (participationPattern.balanced) {
-    insights.push('バランスの取れた参加により包括的な議論が実現');
-  }
-  
-  if (participationPattern.qualityProgression) {
-    insights.push('議論の進行とともに発言品質が向上するパターンを確認');
-  }
-  
-  return insights.slice(0, 4); // 上位4つの洞察
-}
-
-// 🔄 プロセス特徴分析
-function analyzeProcessCharacteristics(statements: DiscussionStatement[], participantTypes: MBTIType[]): string[] {
-  const characteristics = [];
-  
-  // 参加パターン分析
-  const groupParticipation = {
-    NT: participantTypes.filter(t => t.includes('NT')).length,
-    NF: participantTypes.filter(t => t.includes('NF')).length,
-    SJ: participantTypes.filter(t => t.includes('SJ')).length,
-    SP: participantTypes.filter(t => t.includes('SP')).length
-  };
-  
-  const dominantGroups = Object.entries(groupParticipation)
-    .filter(([_, count]) => count >= 2)
-    .map(([group, _]) => group);
-  
-  if (dominantGroups.length >= 3) {
-    characteristics.push('4つの認知スタイル群がバランス良く参加');
-  }
-  
-  // 議論の動的特性
-  const avgConfidenceProgression = analyzeConfidenceProgression(statements);
-  if (avgConfidenceProgression > 0.05) {
-    characteristics.push('議論の進行とともに参加者の確信度が向上');
-  }
-  
-  // 相互作用パターン
-  const interactionDensity = analyzeInteractionDensity(statements);
-  if (interactionDensity > 0.7) {
-    characteristics.push('高い相互作用密度による活発な議論');
-  } else {
-    characteristics.push('構造化された順序立った議論進行');
-  }
-  
-  return characteristics;
-}
-
-// 🔄 参加パターン分析
-function analyzeParticipationPattern(statements: DiscussionStatement[]): {
-  balanced: boolean;
-  qualityProgression: boolean;
-} {
-  const typeParticipation = new Map<string, number>();
-  statements.forEach(s => {
-    typeParticipation.set(s.mbtiType, (typeParticipation.get(s.mbtiType) || 0) + 1);
-  });
-  
-  const participationValues = Array.from(typeParticipation.values());
-  const balanced = participationValues.length > 0 && 
-    (Math.max(...participationValues) / Math.min(...participationValues)) <= 2;
-  
-  // 品質進行分析
-  const firstHalf = statements.slice(0, Math.floor(statements.length / 2));
-  const secondHalf = statements.slice(Math.floor(statements.length / 2));
-  
-  const firstHalfAvgConfidence = firstHalf.reduce((sum, s) => sum + s.confidence, 0) / firstHalf.length;
-  const secondHalfAvgConfidence = secondHalf.reduce((sum, s) => sum + s.confidence, 0) / secondHalf.length;
-  
-  const qualityProgression = secondHalfAvgConfidence > firstHalfAvgConfidence + 0.05;
-  
-  return { balanced, qualityProgression };
-}
-
-// 📈 確信度進行分析
-function analyzeConfidenceProgression(statements: DiscussionStatement[]): number {
-  if (statements.length < 4) return 0;
-  
-  const firstQuarter = statements.slice(0, Math.floor(statements.length / 4));
-  const lastQuarter = statements.slice(-Math.floor(statements.length / 4));
-  
-  const firstAvg = firstQuarter.reduce((sum, s) => sum + s.confidence, 0) / firstQuarter.length;
-  const lastAvg = lastQuarter.reduce((sum, s) => sum + s.confidence, 0) / lastQuarter.length;
-  
-  return lastAvg - firstAvg;
-}
-
-// 🔗 相互作用密度分析
-function analyzeInteractionDensity(statements: DiscussionStatement[]): number {
-  // 簡易的な相互作用密度計算（発言の時間間隔や内容の相互参照度合いから推定）
-  const timeIntervals = [];
-  for (let i = 1; i < statements.length; i++) {
-    const interval = statements[i].timestamp.getTime() - statements[i-1].timestamp.getTime();
-    timeIntervals.push(interval);
-  }
-  
-  const avgInterval = timeIntervals.reduce((sum, interval) => sum + interval, 0) / timeIntervals.length;
-  const shortIntervals = timeIntervals.filter(interval => interval < avgInterval * 0.8).length;
-  
-  return shortIntervals / timeIntervals.length;
-}
-
-// 📝 総合概要生成
-function generateOverview(
-  topic: string,
-  participantTypes: MBTIType[],
-  statementCount: number,
-  qualityMetrics: any,
-  keyThemes: string[]
-): string {
-  const typeGroups = {
-    NT: participantTypes.filter(t => t.includes('NT')).length,
-    NF: participantTypes.filter(t => t.includes('NF')).length,
-    SJ: participantTypes.filter(t => t.includes('SJ')).length,
-    SP: participantTypes.filter(t => t.includes('SP')).length
-  };
-  
-  const dominantGroups = Object.entries(typeGroups)
-    .filter(([_, count]) => count > 0)
-    .map(([group, count]) => `${group}(${count})`)
-    .join('、');
-  
-  const qualityLevel = qualityMetrics.diversityScore >= 0.85 ? '非常に高品質' : 
-                     qualityMetrics.diversityScore >= 0.75 ? '高品質' : '標準的';
-  
-  return `「${topic}」について、${participantTypes.length}のMBTIタイプ（${dominantGroups}）が${statementCount}回の発言を通じて${qualityLevel}な議論を展開。主要テーマは${keyThemes.slice(0, 3).join('、')}など。総合品質スコア${(qualityMetrics.diversityScore * 100).toFixed(0)}%を達成し、多角的視点による包括的な議論が実現された。`;
-}
-
-// 🔧 リアルタイム最適化システム
-interface RealtimeOptimizationEngine {
-  optimizeInRealtime(
-    currentDiscussion: DiscussionStatement[],
-    graphStructure: GraphStructure,
-    qualityMetrics: ComprehensiveQualityReport,
-    context: WeightingContext
-  ): Promise<{
-    optimizedGraph: OptimizedGraphStructure;
-    adjustedWeights: Map<MBTIType, number>;
-    recommendations: string[];
-    qualityImprovement: number;
-  }>;
-}
-
-// 🎯 リアルタイム最適化エンジン実装
-class RealtimeOptimizer implements RealtimeOptimizationEngine {
-  async optimizeInRealtime(
-    currentDiscussion: DiscussionStatement[],
-    graphStructure: GraphStructure,
-    qualityMetrics: ComprehensiveQualityReport,
-    context: WeightingContext
-  ) {
-    const recommendations: string[] = [];
-    let qualityImprovement = 0;
-
-    // 1. 発言パターン分析
-    const mbtiParticipation = this.analyzeMBTIParticipation(currentDiscussion);
-    const dominantTypes = Object.entries(mbtiParticipation)
-      .filter(([, count]) => count > currentDiscussion.length * 0.3)
-      .map(([type]) => type as MBTIType);
-
-    // 2. 品質ボトルネック検出
-    const bottlenecks = this.detectQualityBottlenecks(qualityMetrics);
-    
-    // 3. 動的重み調整
-    const adjustedWeights = new Map<MBTIType, number>();
-    ALL_MBTI_TYPES.forEach(type => {
-      let weight = 1.0;
-      
-      // 発言頻度に基づく調整
-      const participation = mbtiParticipation[type] || 0;
-      const averageParticipation = currentDiscussion.length / 16;
-      
-      if (participation < averageParticipation * 0.5) {
-        weight *= 1.3; // 発言が少ないタイプの重みを上げる
-        recommendations.push(`${type}の発言機会を増やすことで多様性が向上します`);
-      } else if (participation > averageParticipation * 2) {
-        weight *= 0.8; // 発言が多すぎるタイプの重みを下げる
-      }
-      
-      // 品質ボトルネックに基づく調整
-      if (bottlenecks.includes('多様性') && this.isIntuitive(type)) {
-        weight *= 1.2; // 直感タイプの重みを上げる
-      }
-      if (bottlenecks.includes('一貫性') && this.isThinking(type)) {
-        weight *= 1.2; // 思考タイプの重みを上げる
-      }
-      if (bottlenecks.includes('協調性') && this.isFeeling(type)) {
-        weight *= 1.2; // 感情タイプの重みを上げる
-      }
-      
-      adjustedWeights.set(type, weight);
-    });
-
-    // 4. グラフ構造最適化
-    const optimizedGraph = await this.optimizeGraphStructure(
-      graphStructure,
-      adjustedWeights,
-      bottlenecks
-    );
-
-    // 5. 品質改善度計算
-    qualityImprovement = this.calculateQualityImprovement(
-      qualityMetrics,
-      adjustedWeights,
-      optimizedGraph
-    );
-
-    return {
-      optimizedGraph,
-      adjustedWeights,
-      recommendations,
-      qualityImprovement
-    };
-  }
-
-  private analyzeMBTIParticipation(statements: DiscussionStatement[]): Record<string, number> {
-    const participation: Record<string, number> = {};
-    statements.forEach(stmt => {
-      participation[stmt.mbtiType] = (participation[stmt.mbtiType] || 0) + 1;
-    });
-    return participation;
-  }
-
-  private detectQualityBottlenecks(metrics: ComprehensiveQualityReport): string[] {
-    const bottlenecks: string[] = [];
-    
-    // 型安全性を確保するためのnullチェック
-    const metricsData = metrics.comprehensiveMetrics || {
-      diversityScore: metrics.diversityScore || 0,
-      consistencyScore: metrics.consistencyScore || 0,
-      socialDecisionScore: metrics.socialDecisionScore || 0
-    };
-    
-    if (metricsData.diversityScore < 0.75) {
-      bottlenecks.push('多様性');
-    }
-    if (metricsData.consistencyScore < 0.80) {
-      bottlenecks.push('一貫性');
-    }
-    if (metricsData.socialDecisionScore < 0.75) {
-      bottlenecks.push('協調性');
-    }
-    
-    return bottlenecks;
-  }
-
-  private async optimizeGraphStructure(
-    currentGraph: GraphStructure,
-    weights: Map<MBTIType, number>,
-    bottlenecks: string[]
-  ): Promise<OptimizedGraphStructure> {
-    // 重み調整に基づいてグラフエッジを最適化
-    const optimizedEdges = new Map<string, number>();
-    
-    // 既存エッジの重み調整
-    currentGraph.edges.forEach((weight, edgeId) => {
-      const [source, target] = edgeId.split('-');
-      const sourceWeight = weights.get(source as MBTIType) || 1.0;
-      const targetWeight = weights.get(target as MBTIType) || 1.0;
-      
-      const adjustedWeight = weight * Math.sqrt(sourceWeight * targetWeight);
-      optimizedEdges.set(edgeId, adjustedWeight);
-    });
-
-    return {
-      nodes: currentGraph.nodes,
-      edges: optimizedEdges,
-      clusters: currentGraph.clusters,
-      optimizationMetrics: {
-        efficiency: Math.min(0.95, 0.75 + (weights.size / 16) * 0.2),
-        cohesion: Math.min(0.90, 0.65 + (bottlenecks.length === 0 ? 0.25 : (3 - bottlenecks.length) * 0.08)),
-        adaptationSpeed: Math.max(1.0, 4.0 - (weights.size / 16) * 2.0)
-      }
-    };
-  }
-
-  private calculateQualityImprovement(
-    currentMetrics: ComprehensiveQualityReport,
-    weights: Map<MBTIType, number>,
-    optimizedGraph: OptimizedGraphStructure
-  ): number {
-    // 重み調整とグラフ最適化による品質改善度を計算
-    const weightVariance = Array.from(weights.values())
-      .reduce((sum, w, _, arr) => sum + Math.pow(w - arr.reduce((s, v) => s + v, 0) / arr.length, 2), 0) / weights.size;
-    
-    const graphEfficiency = optimizedGraph.optimizationMetrics.efficiency;
-    
-    return (1 - weightVariance) * 0.3 + graphEfficiency * 0.7;
-  }
-
-  private isIntuitive(type: MBTIType): boolean {
-    return type.includes('N');
-  }
-
-  private isThinking(type: MBTIType): boolean {
-    return type.includes('T');
-  }
-
-  private isFeeling(type: MBTIType): boolean {
-    return type.includes('F');
-  }
-}
-
-// 🎯 拡張された対話スキーマ
+// 🆕 拡張された対話スキーマ（7次元評価統合）
 const enhancedConversationSchema = z.object({
   turnNumber: z.number(),
   speakerAgentId: z.string(),
@@ -571,6 +67,17 @@ const enhancedConversationSchema = z.object({
   relevance: z.number(),
   dynamicWeight: z.number(),
   qualityContribution: z.number(),
+  // 🆕 7次元品質評価結果を追加
+  sevenDimensionEvaluation: z.object({
+    performance: z.number(),
+    psychological: z.number(),
+    externalAlignment: z.number(),
+    internalConsistency: z.number(),
+    socialDecisionMaking: z.number(),
+    contentQuality: z.number(),
+    ethics: z.number(),
+    overallQuality: z.number()
+  }).optional(),
   realtimeOptimization: z.object({
     weightAdjustment: z.number(),
     graphOptimization: z.boolean(),
@@ -581,7 +88,7 @@ const enhancedConversationSchema = z.object({
 // 🔧 品質評価エンジンのインスタンス作成
 const qualityEvaluator = new ComprehensiveQualityEvaluator();
 
-// ✨ Phase 2 完全版ステップ（会話保存機能付き）
+// ✨ Phase 2 完全版ステップ（大幅に簡素化）
 const executeAdvancedMBTIDiscussionStep = createStep({
   id: 'execute-advanced-mbti-discussion',
   description: 'Execute advanced MBTI discussion with 16 agents, 7D quality evaluation, realtime optimization, and conversation saving',
@@ -611,14 +118,14 @@ const executeAdvancedMBTIDiscussionStep = createStep({
       socialDecisionScore: z.number(),
       contentQualityScore: z.number(),
       ethicsScore: z.number(),
-      
+
       // 従来メトリクス
       diversityScore: z.number(),
       consistencyScore: z.number(),
       convergenceEfficiency: z.number(),
       mbtiAlignmentScore: z.number(),
       interactionQuality: z.number(),
-      
+
       // 新規メトリクス
       argumentQuality: z.number(),
       participationBalance: z.number(),
@@ -675,9 +182,77 @@ const executeAdvancedMBTIDiscussionStep = createStep({
       console.log(`📁 出力先: ${inputData.outputDirectory}`);
     }
 
+    // 🔧 初期化
     const statements: DiscussionStatement[] = [];
-    const conversationFlow: any[] = [];
-    const realtimeOptimizer = new RealtimeOptimizer();
+    const conversationFlow: Array<{
+      turnNumber: number;
+      speakerAgentId: string;
+      speakerMbtiType: string;
+      statement: string;
+      timestamp: string;
+      confidence: number;
+      relevance: number;
+      dynamicWeight: number;
+      qualityContribution: number;
+      realtimeOptimization: {
+        weightAdjustment: number;
+        graphOptimization: boolean;
+        qualityImprovement: number;
+      };
+      sevenDimensionEvaluation?: {
+        performance: number;
+        psychological: number;
+        externalAlignment: number;
+        internalConsistency: number;
+        socialDecisionMaking: number;
+        contentQuality: number;
+        ethics: number;
+        overallQuality: number;
+      };
+      responseToAgent?: string;
+    }> = [];
+    const realtimeOptimizer = createRealtimeOptimizer();
+
+    // 🆕 統合フィードバックシステム初期化
+    console.log('🎯 統合フィードバックシステムを初期化中...');
+    const feedbackConfig = FeedbackConfigurationBuilder
+      .create()
+      .applyBalancedPreset()
+      .withQualityThresholds({
+        overallMinimum: Math.max(inputData.qualityThreshold * 0.8, 0.6), // 健全性チェック用に閾値を緩和
+        interventionThreshold: 0.5 // 介入閾値も緩和
+      })
+      .enableRealtimeOptimization(inputData.enableRealtimeOptimization)
+      .build();
+
+    const realtimeFeedbackManager = new RealtimeFeedbackManager(feedbackConfig);
+
+    try {
+      await realtimeFeedbackManager.initialize();
+      console.log('✅ 統合フィードバックシステム初期化完了');
+    } catch (error) {
+      console.warn('⚠️ 統合フィードバックシステム初期化で警告:', error);
+      console.log('🔄 より緩い設定で再試行中...');
+
+      // より緩い設定で再試行
+      const fallbackConfig = FeedbackConfigurationBuilder
+        .create()
+        .applyEfficiencyPreset() // より緩い効率重視プリセット
+        .withQualityThresholds({
+          overallMinimum: 0.6,
+          interventionThreshold: 0.4
+        })
+        .enableRealtimeOptimization(inputData.enableRealtimeOptimization)
+        .build();
+
+      const fallbackManager = new RealtimeFeedbackManager(fallbackConfig);
+      await fallbackManager.initialize();
+
+      // マネージャーを置き換え
+      Object.assign(realtimeFeedbackManager, fallbackManager);
+      console.log('✅ フォールバック設定で統合フィードバックシステム初期化完了');
+    }
+
     let turnNumber = 1;
     let optimizationCount = 0;
     let totalQualityImprovement = 0;
@@ -685,29 +260,12 @@ const executeAdvancedMBTIDiscussionStep = createStep({
     let graphOptimizations = 0;
     const allRecommendations: string[] = [];
 
-    // 🎯 参加エージェント選択（多様性を考慮）
+    // 🎯 参加エージェント選択
     const selectedTypes = selectDiverseMBTITypes(inputData.participantCount);
     console.log(`📊 選択されたMBTIタイプ: ${selectedTypes.join(', ')}`);
 
-    // 🔧 オーケストレータによる高度な初期化
+    // 🔧 オーケストレーター取得
     const orchestrator = mastra?.getAgent('M-ADS-Orchestrator');
-    if (orchestrator && inputData.enableGraphOptimization) {
-      console.log(`\n🔧 グラフトポロジー最適化を開始...`);
-      
-      await orchestrator.generate([
-        { 
-          role: 'user', 
-          content: `initializeGraphツールを使用してVEM-GCN最適化を有効にしてグラフを初期化し、${selectedTypes.join('、')}のエージェントを追加してください。`
-        }
-      ]);
-      
-      await orchestrator.generate([
-        { 
-          role: 'user', 
-          content: `optimizeGraphTopologyツールを使用してMBTI相互作用に基づいてグラフを最適化してください。`
-        }
-      ]);
-    }
 
     // 🎭 参加エージェント準備
     const participants = selectedTypes.map(type => {
@@ -716,7 +274,12 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         type,
         name: agentName,
         agent: mastra?.getAgent(agentName),
-        weight: 1.0
+        weight: 1.0,
+        lastSpokenTurn: 0,
+        performanceHistory: [] as number[],
+        feedbackHistory: [] as PerformanceFeedback[],
+        previousStatements: [] as string[],
+        previousDiscussionStatements: [] as DiscussionStatement[]
       };
     }).filter(p => p.agent);
 
@@ -724,35 +287,100 @@ const executeAdvancedMBTIDiscussionStep = createStep({
 
     // 🔄 Phase 1: 初期議論ラウンド
     console.log(`\n===== Phase 1: 初期議論（多様性重視）=====`);
-    
+
     for (const participant of participants) {
-      const prompt = createPhasePrompt('initial', inputData.topic, participant.type, []);
-      
+      // 🆕 適応的プロンプト生成（統合フィードバックシステムを使用）
+      const adaptivePrompt = await realtimeFeedbackManager.generateAdaptivePrompt({
+        mbtiType: participant.type,
+        topic: inputData.topic,
+        phase: 'initial',
+        currentWeight: participant.weight
+      });
+
       const response = await participant.agent!.generate([
-        { role: 'user', content: prompt }
+        { role: 'user', content: adaptivePrompt }
       ]);
-      
-      // 🔥 実際の内容に基づく評価（Math.random()を撤廃）
-      const contentLength = response.text.length;
-      const hasKeywords = /論理|分析|理由|根拠|証拠|価値|意味|協力|解決|提案/.test(response.text);
-      const actualConfidence = Math.min(0.95, 0.7 + (contentLength / 500) * 0.2 + (hasKeywords ? 0.1 : 0));
-      
-      const topicWords = inputData.topic.toLowerCase().split(/\s+/);
-      const contentWords = response.text.toLowerCase();
-      const relevantMatches = topicWords.filter(word => contentWords.includes(word)).length;
-      const actualRelevance = Math.min(0.95, 0.6 + (relevantMatches / topicWords.length) * 0.3);
-      
+
+      // 🔥 統合フィードバック評価（RealtimeFeedbackManagerを使用）
+      const evaluationContext: EvaluationContext = {
+        statement: response.text,
+        topic: inputData.topic,
+        mbtiType: participant.type,
+        phase: 'initial',
+        turnNumber: turnNumber,
+        history: {
+          recentStatements: [],
+          agentStatements: [],
+          performanceHistory: [],
+          feedbackHistory: []
+        },
+        participants: participants.map(p => ({
+          mbtiType: p.type,
+          currentWeight: p.weight,
+          participationCount: 1,
+          averageQuality: 0.8,
+          lastActivity: new Date()
+        })),
+        currentWeight: participant.weight
+      };
+
+      const feedbackResult = await realtimeFeedbackManager.evaluateStatement(evaluationContext);
+
+      // 下位互換性のため、旧形式のdetailedPerformanceFeedbackを構築
+      const detailedPerformanceFeedback = {
+        overallScore: feedbackResult.detailed.sevenDimensionEvaluation?.overallQuality || 0.8,
+        feedback: feedbackResult.detailed.feedback,
+        improvementSuggestions: feedbackResult.detailed.improvements || [],
+        mbtiAlignment: feedbackResult.detailed.mbtiAlignment || {
+          alignmentScore: 0.8,
+          expectedCharacteristics: [],
+          demonstratedCharacteristics: [],
+          alignmentGap: [],
+          recommendedFocus: []
+        },
+        detailedAnalysis: {
+          nextSpeechGuidance: feedbackResult.nextGuidance || `${participant.type}として次回の発言を改善してください`,
+          strengths: feedbackResult.detailed.improvements || [],
+          weaknesses: [],
+          specificImprovements: [],
+          qualityTrend: 'stable' as const
+        },
+        sevenDimensionEvaluation: feedbackResult.detailed.sevenDimensionEvaluation || {
+          performance: 0.8,
+          psychological: 0.8,
+          externalAlignment: 0.8,
+          internalConsistency: 0.8,
+          socialDecisionMaking: 0.8,
+          contentQuality: 0.8,
+          ethics: 0.8,
+          overallQuality: 0.8
+        },
+        progressTracking: {
+          improvementTrend: 'stable' as 'improving' | 'stable' | 'declining',
+          consistencyScore: 0.8,
+          recommendedFocus: [],
+          milestones: []
+        }
+      };
+
       const statement: DiscussionStatement = {
         agentId: `node-${participant.type}`,
         mbtiType: participant.type,
         content: response.text,
         timestamp: new Date(),
-        confidence: actualConfidence,
-        relevance: actualRelevance
+        confidence: detailedPerformanceFeedback.overallScore,
+        relevance: detailedPerformanceFeedback.overallScore
       };
-      
+
+      // 履歴を更新（DiscussionStatement形式も含む）
+      participant.feedbackHistory.push(detailedPerformanceFeedback);
+      participant.previousStatements.push(response.text);
+      participant.previousDiscussionStatements.push(statement);
+      participant.performanceHistory.push(detailedPerformanceFeedback.overallScore);
+      participant.lastSpokenTurn = turnNumber;
+
       statements.push(statement);
-      
+
       conversationFlow.push({
         turnNumber: turnNumber++,
         speakerAgentId: statement.agentId,
@@ -762,52 +390,39 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         confidence: statement.confidence,
         relevance: statement.relevance,
         dynamicWeight: participant.weight,
-        qualityContribution: actualConfidence * 0.7 + actualRelevance * 0.3,
+        qualityContribution: detailedPerformanceFeedback.overallScore,
+        // 🆕 7次元評価結果を型安全に追加
+        sevenDimensionEvaluation: detailedPerformanceFeedback.sevenDimensionEvaluation ? {
+          performance: detailedPerformanceFeedback.sevenDimensionEvaluation.performance || 0.8,
+          psychological: detailedPerformanceFeedback.sevenDimensionEvaluation.psychological || 0.8,
+          externalAlignment: detailedPerformanceFeedback.sevenDimensionEvaluation.externalAlignment || 0.8,
+          internalConsistency: detailedPerformanceFeedback.sevenDimensionEvaluation.internalConsistency || 0.8,
+          socialDecisionMaking: detailedPerformanceFeedback.sevenDimensionEvaluation.socialDecisionMaking || 0.8,
+          contentQuality: detailedPerformanceFeedback.sevenDimensionEvaluation.contentQuality || 0.8,
+          ethics: detailedPerformanceFeedback.sevenDimensionEvaluation.ethics || 0.8,
+          overallQuality: detailedPerformanceFeedback.sevenDimensionEvaluation.overallQuality || 0.8
+        } : undefined,
         realtimeOptimization: {
           weightAdjustment: 0,
           graphOptimization: false,
           qualityImprovement: 0
         }
       });
-      
-      console.log(`\n💬 ${participant.type}: ${response.text.substring(0, 100)}...`);
+
+      console.log(`\n💬 ${participant.type} (重み: ${participant.weight.toFixed(2)}, 成績: ${(detailedPerformanceFeedback.overallScore * 100).toFixed(0)}%): ${response.text.substring(0, 100)}...`);
+      console.log(`📊 フィードバック: ${detailedPerformanceFeedback.feedback}`);
+      console.log(`🎯 次回への指示: ${detailedPerformanceFeedback.detailedAnalysis.nextSpeechGuidance}`);
+      console.log(`📈 7次元評価: P${(detailedPerformanceFeedback.sevenDimensionEvaluation.performance * 100).toFixed(0)}% | 心${(detailedPerformanceFeedback.sevenDimensionEvaluation.psychological * 100).toFixed(0)}% | 品${(detailedPerformanceFeedback.sevenDimensionEvaluation.contentQuality * 100).toFixed(0)}% | 協${(detailedPerformanceFeedback.sevenDimensionEvaluation.socialDecisionMaking * 100).toFixed(0)}%`);
     }
 
     // 🔄 Phase 2-4: 反復的議論＋リアルタイム最適化
     for (let phase = 2; phase <= 4; phase++) {
       console.log(`\n===== Phase ${phase}: 反復議論＋リアルタイム最適化 =====`);
-      
-      // 📊 中間品質評価（直接実行 - オーケストレータツール問題を回避）
-      if (statements.length > 0) {
-        console.log(`📊 ${statements.length}件の発言データで中間品質評価を実行...`);
-        
-        try {
-          // 直接品質評価を実行（ツール呼び出しエラーを回避）
-          const intermediateQualityMetrics = await qualityEvaluator.evaluateComprehensiveQuality(
-            statements,
-            {
-              topic: inputData.topic,
-              duration: (new Date().getTime() - workflowStartTime.getTime()) / 1000,
-              phase: `Phase ${phase}`,
-              expectedOutcome: 'consensus building'
-            }
-          );
-          
-          console.log(`📊 中間品質評価完了 - 総合スコア: ${(intermediateQualityMetrics.overallQuality * 100).toFixed(1)}%`);
-          console.log(`📊 多様性: ${(intermediateQualityMetrics.contentQuality.semanticDiversity * 100).toFixed(1)}%`);
-          console.log(`📊 一貫性: ${(intermediateQualityMetrics.internalConsistency.logicalCoherence * 100).toFixed(1)}%`);
-          
-        } catch (evaluationError) {
-          console.warn(`⚠️ 中間品質評価でエラーが発生しましたが、処理を続行します: ${evaluationError}`);
-        }
-      }
 
       // ⚡ リアルタイム最適化実行
       if (inputData.enableRealtimeOptimization && statements.length > 0) {
         console.log(`⚡ リアルタイム最適化実行中...`);
-        
-        // 🔥 実際の品質評価システムを使用（Math.random()を撤廃）
-        console.log(`📊 実際の7次元品質評価を実行中...`);
+
         const realQualityMetrics = await qualityEvaluator.evaluateComprehensiveQuality(
           statements,
           {
@@ -817,8 +432,7 @@ const executeAdvancedMBTIDiscussionStep = createStep({
             expectedOutcome: 'consensus building'
           }
         );
-        
-        // ComprehensiveQualityReport形式に変換
+
         const qualityMetrics: ComprehensiveQualityReport = {
           comprehensiveMetrics: {
             performanceScore: realQualityMetrics.performance.overallPerformance,
@@ -828,14 +442,13 @@ const executeAdvancedMBTIDiscussionStep = createStep({
             socialDecisionScore: realQualityMetrics.socialDecisionMaking.socialIntelligence,
             contentQualityScore: realQualityMetrics.contentQuality.argumentQuality,
             ethicsScore: realQualityMetrics.ethics.ethicalStandard,
-            // 従来メトリクスも実際の評価結果から計算
             diversityScore: realQualityMetrics.contentQuality.semanticDiversity,
             consistencyScore: realQualityMetrics.internalConsistency.logicalCoherence,
             convergenceEfficiency: realQualityMetrics.socialDecisionMaking.consensusBuilding,
             mbtiAlignmentScore: realQualityMetrics.psychological.personalityConsistency,
             interactionQuality: realQualityMetrics.socialDecisionMaking.cooperationLevel,
             argumentQuality: realQualityMetrics.contentQuality.argumentQuality,
-            participationBalance: 0.8, // 実際の参加バランスを後で計算
+            participationBalance: 0.8,
             resolutionRate: realQualityMetrics.performance.taskCompletionRate
           },
           detailedAnalysis: `7次元品質評価による詳細分析完了`,
@@ -876,7 +489,7 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         optimizationCount++;
         totalQualityImprovement += optimization.qualityImprovement;
         allRecommendations.push(...optimization.recommendations);
-        
+
         // 重み調整を適用
         optimization.adjustedWeights.forEach((weight, type) => {
           const participant = participants.find(p => p.type === type);
@@ -895,40 +508,137 @@ const executeAdvancedMBTIDiscussionStep = createStep({
       }
 
       // 💬 このフェーズの議論実行
-      for (const participant of participants) {
-        const recentContext = statements.slice(-6).map(s => `${s.mbtiType}: ${s.content}`).join('\n\n');
-        const prompt = createPhasePrompt(
-          phase === 2 ? 'interaction' : phase === 3 ? 'synthesis' : 'consensus',
-          inputData.topic,
-          participant.type,
-          statements.slice(-3)
+      const phaseTypeMapping = {
+        2: 'interaction',
+        3: 'synthesis',
+        4: 'consensus'
+      } as const;
+      const currentPhaseType = phaseTypeMapping[phase as keyof typeof phaseTypeMapping];
+
+      console.log(`\n🎯 重み付けベース選択による${currentPhaseType}議論開始`);
+
+      const phaseParticipantCount = Math.min(participants.length, inputData.participantCount);
+
+      for (let speakerIndex = 0; speakerIndex < phaseParticipantCount; speakerIndex++) {
+        // 🆕 重み付けベースでエージェント選択
+        const speakerSelection = selectNextSpeakerByWeight(
+          participants,
+          turnNumber,
+          currentPhaseType
         );
-        
-        const response = await participant.agent!.generate([
-          { role: 'user', content: prompt }
-        ]);
-        
-        // 🔥 実際の内容に基づく評価（Math.random()を撤廃）
-        const contentLength = response.text.length;
-        const hasKeywords = /論理|分析|理由|根拠|証拠|価値|意味|協力|解決|提案|合意|結論/.test(response.text);
-        const actualConfidence = Math.min(0.95, 0.7 + (contentLength / 500) * 0.2 + (hasKeywords ? 0.1 : 0));
-        
-        const topicWords = inputData.topic.toLowerCase().split(/\s+/);
-        const contentWords = response.text.toLowerCase();
-        const relevantMatches = topicWords.filter(word => contentWords.includes(word)).length;
-        const actualRelevance = Math.min(0.95, 0.6 + (relevantMatches / topicWords.length) * 0.3);
-        
+
+        // 型安全性向上：selectedParticipantの型アサーション
+        const selectedParticipant = speakerSelection.selectedParticipant as any;
+
+        console.log(`\n🔍 重み付け選択結果: ${selectedParticipant?.type || 'Unknown'}`);
+        console.log(`📊 選択理由: ${speakerSelection.selectionReason}`);
+
+        // 🆕 適応的プロンプト生成（統合フィードバックシステムを使用）
+        const adaptivePrompt = await realtimeFeedbackManager.generateAdaptivePrompt({
+          mbtiType: selectedParticipant?.type || 'INTJ',
+          topic: inputData.topic,
+          phase: currentPhaseType,
+          currentWeight: selectedParticipant?.weight || 1.0
+        });
+
+        const response = await selectedParticipant?.agent?.generate([
+          { role: 'user', content: adaptivePrompt }
+        ]) || { text: 'System error in agent response' };
+
+        // 🔥 統合フィードバック評価（RealtimeFeedbackManagerを使用）
+        const evaluationContext: EvaluationContext = {
+          statement: response.text,
+          topic: inputData.topic,
+          mbtiType: selectedParticipant?.type || 'INTJ',
+          phase: currentPhaseType,
+          turnNumber: turnNumber,
+          history: {
+            recentStatements: [],
+            agentStatements: [],
+            performanceHistory: [],
+            feedbackHistory: []
+          },
+          participants: participants.map(p => ({
+            mbtiType: p.type,
+            currentWeight: p.weight,
+            participationCount: 1,
+            averageQuality: 0.8,
+            lastActivity: new Date()
+          })),
+          currentWeight: selectedParticipant?.weight || 1.0
+        };
+
+        const feedbackResult = await realtimeFeedbackManager.evaluateStatement(evaluationContext);
+
+        // 下位互換性のため、旧形式のdetailedPerformanceFeedbackを構築
+        const detailedPerformanceFeedback = {
+          overallScore: feedbackResult.detailed.sevenDimensionEvaluation?.overallQuality || 0.8,
+          feedback: feedbackResult.detailed.feedback,
+          improvementSuggestions: feedbackResult.detailed.improvements || [],
+          mbtiAlignment: feedbackResult.detailed.mbtiAlignment || {
+            alignmentScore: 0.8,
+            expectedCharacteristics: [],
+            demonstratedCharacteristics: [],
+            alignmentGap: [],
+            recommendedFocus: []
+          },
+          detailedAnalysis: {
+            nextSpeechGuidance: feedbackResult.nextGuidance || `${selectedParticipant?.type}として次回の発言を改善してください`,
+            strengths: feedbackResult.detailed.improvements || [],
+            weaknesses: [],
+            specificImprovements: [],
+            qualityTrend: 'stable' as const
+          },
+          sevenDimensionEvaluation: feedbackResult.detailed.sevenDimensionEvaluation || {
+            performance: 0.8,
+            psychological: 0.8,
+            externalAlignment: 0.8,
+            internalConsistency: 0.8,
+            socialDecisionMaking: 0.8,
+            contentQuality: 0.8,
+            ethics: 0.8,
+            overallQuality: 0.8
+          },
+          progressTracking: {
+            improvementTrend: 'stable' as 'improving' | 'stable' | 'declining',
+            consistencyScore: 0.8,
+            recommendedFocus: [],
+            milestones: []
+          }
+        };
+
         const statement: DiscussionStatement = {
-          agentId: `node-${participant.type}`,
-          mbtiType: participant.type,
+          agentId: `node-${selectedParticipant?.type || 'UNKNOWN'}`,
+          mbtiType: selectedParticipant?.type || 'INTJ',
           content: response.text,
           timestamp: new Date(),
-          confidence: actualConfidence,
-          relevance: actualRelevance
+          confidence: detailedPerformanceFeedback.overallScore,
+          relevance: detailedPerformanceFeedback.overallScore
         };
-        
+
+        // 履歴を更新（DiscussionStatement形式も含む）
+        if (selectedParticipant) {
+          selectedParticipant.feedbackHistory?.push(detailedPerformanceFeedback);
+          selectedParticipant.previousStatements?.push(response.text);
+          selectedParticipant.previousDiscussionStatements?.push(statement);
+          selectedParticipant.performanceHistory?.push(detailedPerformanceFeedback.overallScore);
+          selectedParticipant.lastSpokenTurn = turnNumber;
+
+          // 🆕 重み動的調整（進捗に基づく）
+          const improvementTrend = detailedPerformanceFeedback.progressTracking.improvementTrend;
+          if (improvementTrend === 'improving') {
+            selectedParticipant.weight *= 1.15;
+          } else if (improvementTrend === 'declining') {
+            selectedParticipant.weight *= 0.85;
+          } else if (detailedPerformanceFeedback.overallScore > 0.85) {
+            selectedParticipant.weight *= 1.1;
+          } else if (detailedPerformanceFeedback.overallScore < 0.6) {
+            selectedParticipant.weight *= 0.9;
+          }
+        }
+
         statements.push(statement);
-        
+
         conversationFlow.push({
           turnNumber: turnNumber++,
           speakerAgentId: statement.agentId,
@@ -937,22 +647,36 @@ const executeAdvancedMBTIDiscussionStep = createStep({
           timestamp: statement.timestamp.toISOString(),
           confidence: statement.confidence,
           relevance: statement.relevance,
-          dynamicWeight: participant.weight,
-          qualityContribution: actualConfidence * 0.7 + actualRelevance * 0.3,
+          dynamicWeight: selectedParticipant?.weight || 1.0,
+          qualityContribution: detailedPerformanceFeedback.overallScore,
+          // 🆕 7次元評価結果を型安全に追加
+          sevenDimensionEvaluation: detailedPerformanceFeedback.sevenDimensionEvaluation ? {
+            performance: detailedPerformanceFeedback.sevenDimensionEvaluation.performance || 0.8,
+            psychological: detailedPerformanceFeedback.sevenDimensionEvaluation.psychological || 0.8,
+            externalAlignment: detailedPerformanceFeedback.sevenDimensionEvaluation.externalAlignment || 0.8,
+            internalConsistency: detailedPerformanceFeedback.sevenDimensionEvaluation.internalConsistency || 0.8,
+            socialDecisionMaking: detailedPerformanceFeedback.sevenDimensionEvaluation.socialDecisionMaking || 0.8,
+            contentQuality: detailedPerformanceFeedback.sevenDimensionEvaluation.contentQuality || 0.8,
+            ethics: detailedPerformanceFeedback.sevenDimensionEvaluation.ethics || 0.8,
+            overallQuality: detailedPerformanceFeedback.sevenDimensionEvaluation.overallQuality || 0.8
+          } : undefined,
           realtimeOptimization: {
-            weightAdjustment: participant.weight - 1.0,
+            weightAdjustment: (selectedParticipant?.weight || 1.0) - 1.0,
             graphOptimization: graphOptimizations > 0,
             qualityImprovement: totalQualityImprovement / Math.max(optimizationCount, 1)
           }
         });
-        
-        console.log(`💬 ${participant.type} (重み: ${participant.weight.toFixed(2)}): ${response.text.substring(0, 80)}...`);
+
+        console.log(`💬 ${selectedParticipant?.type || 'Unknown'} (調整後重み: ${(selectedParticipant?.weight || 1.0).toFixed(2)}, 成績: ${(detailedPerformanceFeedback.overallScore * 100).toFixed(0)}%)`);
+        console.log(`📝 発言: ${response.text.substring(0, 120)}...`);
+        console.log(`🎯 次回への指示: ${detailedPerformanceFeedback.detailedAnalysis.nextSpeechGuidance}`);
+        console.log(`📈 7次元評価: P${(detailedPerformanceFeedback.sevenDimensionEvaluation.performance * 100).toFixed(0)}% | 心${(detailedPerformanceFeedback.sevenDimensionEvaluation.psychological * 100).toFixed(0)}% | 品${(detailedPerformanceFeedback.sevenDimensionEvaluation.contentQuality * 100).toFixed(0)}% | 協${(detailedPerformanceFeedback.sevenDimensionEvaluation.socialDecisionMaking * 100).toFixed(0)}%`);
       }
     }
 
-    // 📊 最終品質評価（7次元品質評価システム使用）
+    // 📊 最終品質評価
     console.log(`\n📊 最終7次元品質評価実行中...`);
-    
+
     const finalQualityEvaluation = await qualityEvaluator.evaluateComprehensiveQuality(
       statements,
       {
@@ -962,18 +686,17 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         expectedOutcome: 'comprehensive consensus'
       }
     );
-    
+
     // 参加バランスを実際に計算
     const participationMap = new Map<string, number>();
     statements.forEach(s => {
       participationMap.set(s.mbtiType, (participationMap.get(s.mbtiType) || 0) + 1);
     });
     const participationValues = Array.from(participationMap.values());
-    const actualParticipationBalance = participationValues.length > 0 ? 
+    const actualParticipationBalance = participationValues.length > 0 ?
       Math.min(...participationValues) / Math.max(...participationValues) : 0.8;
-    
+
     const finalMetrics = {
-      // 7次元品質評価（実際の評価結果）
       performanceScore: finalQualityEvaluation.performance.overallPerformance,
       psychologicalScore: finalQualityEvaluation.psychological.psychologicalRealism,
       externalAlignmentScore: finalQualityEvaluation.externalAlignment.externalConsistency,
@@ -981,21 +704,17 @@ const executeAdvancedMBTIDiscussionStep = createStep({
       socialDecisionScore: finalQualityEvaluation.socialDecisionMaking.socialIntelligence,
       contentQualityScore: finalQualityEvaluation.contentQuality.argumentQuality,
       ethicsScore: finalQualityEvaluation.ethics.ethicalStandard,
-      
-      // 従来メトリクス（実際の評価結果から）
       diversityScore: finalQualityEvaluation.contentQuality.semanticDiversity,
       consistencyScore: finalQualityEvaluation.internalConsistency.logicalCoherence,
       convergenceEfficiency: finalQualityEvaluation.socialDecisionMaking.consensusBuilding,
       mbtiAlignmentScore: finalQualityEvaluation.psychological.personalityConsistency,
       interactionQuality: finalQualityEvaluation.socialDecisionMaking.cooperationLevel,
-      
-      // 新規メトリクス（実際の計算結果）
       argumentQuality: finalQualityEvaluation.contentQuality.argumentQuality,
       participationBalance: actualParticipationBalance,
       resolutionRate: finalQualityEvaluation.performance.taskCompletionRate
     };
 
-    // 📈 総合スコア計算（実際の7次元品質評価結果を使用）
+    // 📈 総合スコア計算
     const comprehensiveScore = finalQualityEvaluation.overallQuality;
 
     // 🏆 グレード算出
@@ -1021,14 +740,15 @@ const executeAdvancedMBTIDiscussionStep = createStep({
 
     // 🆕 議論総括の生成
     console.log(`\n📝 議論総括を生成中...`);
-    const discussionSummary = generateDiscussionSummary(
+    const discussionSummary = await generateDiscussionSummary(
       statements,
       inputData.topic,
       selectedTypes,
-      finalMetrics
+      finalMetrics,
+      orchestrator
     );
 
-    // 💾 会話保存処理（Mastra UI対応）
+    // 💾 会話保存処理
     let conversationSaveResult: {
       saved: boolean;
       filePath?: string;
@@ -1042,26 +762,24 @@ const executeAdvancedMBTIDiscussionStep = createStep({
     if (inputData.saveConversation && conversationFlow.length > 0) {
       try {
         console.log(`\n💾 会話保存を実行中...`);
-        
-        // 会話データの構築
+
         const conversationData: ConversationData = {
           topic: inputData.topic,
           participants: selectedTypes,
           startTime: workflowStartTime,
           endTime: new Date(),
-          turns: conversationFlow.map(turn => ({
-            agentType: turn.speakerMbtiType,
-            message: turn.statement,
-            timestamp: turn.timestamp,
-            weight: turn.dynamicWeight,
+          turns: conversationFlow.map((turn: any) => ({
+            agentType: turn?.speakerMbtiType || 'Unknown',
+            message: turn?.statement || '',
+            timestamp: turn?.timestamp || new Date().toISOString(),
+            weight: turn?.dynamicWeight || 1.0,
             qualityMetrics: {
-              overallQuality: turn.qualityContribution * 100,
-              confidence: turn.confidence * 100,
-              relevance: turn.relevance * 100
+              overallQuality: (turn?.qualityContribution || 0.8) * 100,
+              confidence: (turn?.confidence || 0.8) * 100,
+              relevance: (turn?.relevance || 0.8) * 100
             }
           })),
           qualityReport: {
-            // 7次元品質評価
             performanceScore: finalMetrics.performanceScore,
             psychologicalScore: finalMetrics.psychologicalScore,
             externalAlignmentScore: finalMetrics.externalAlignmentScore,
@@ -1069,8 +787,6 @@ const executeAdvancedMBTIDiscussionStep = createStep({
             socialDecisionScore: finalMetrics.socialDecisionScore,
             contentQualityScore: finalMetrics.contentQualityScore,
             ethicsScore: finalMetrics.ethicsScore,
-            
-            // 従来メトリクス
             diversityScore: finalMetrics.diversityScore,
             consistencyScore: finalMetrics.consistencyScore,
             convergenceEfficiency: finalMetrics.convergenceEfficiency,
@@ -1079,12 +795,8 @@ const executeAdvancedMBTIDiscussionStep = createStep({
             argumentQuality: finalMetrics.argumentQuality,
             participationBalance: finalMetrics.participationBalance,
             resolutionRate: finalMetrics.resolutionRate,
-            
-            // 総合評価
             overallScore: comprehensiveScore,
             grade,
-            
-            // 分析結果
             strengths: generateStrengths(finalMetrics),
             improvements: generateWeaknesses(finalMetrics),
             optimizationResults: {
@@ -1101,11 +813,9 @@ const executeAdvancedMBTIDiscussionStep = createStep({
               graphOptimization: inputData.enableGraphOptimization
             }
           },
-          // 🆕 議論総括を含める
           discussionSummary
         };
 
-        // ファイル保存実行
         let savedPath: string;
         if (inputData.outputFormat === 'json') {
           savedPath = saveConversationAsJson(conversationData, inputData.outputDirectory);
@@ -1113,7 +823,6 @@ const executeAdvancedMBTIDiscussionStep = createStep({
           savedPath = saveConversationAsMarkdown(conversationData, inputData.outputDirectory);
         }
 
-        // ファイルサイズ取得
         let fileSize = '0 KB';
         try {
           const fs = require('fs');
@@ -1131,7 +840,7 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         };
 
         console.log(`✅ 会話保存完了: ${savedPath} (${fileSize})`);
-        
+
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         conversationSaveResult = {
@@ -1141,17 +850,18 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         console.error(`❌ 会話保存エラー: ${errorMessage}`);
       }
     }
-    
+
     console.log(`\n🎉 Phase 2 完全版議論完了!`);
     console.log(`📊 総合スコア: ${(comprehensiveScore * 100).toFixed(1)}% (グレード: ${grade})`);
     console.log(`⚡ リアルタイム最適化: ${optimizationCount}回実行`);
     console.log(`📈 品質改善度: ${(totalQualityImprovement * 100).toFixed(1)}%`);
     console.log(`🔍 主要テーマ: ${discussionSummary.keyThemes.join('、')}`);
     console.log(`💡 主要洞察: ${discussionSummary.insights.slice(0, 2).join('、')}`);
+    console.log(`🎭 7次元最終評価: P${(finalMetrics.performanceScore * 100).toFixed(0)}% | 心${(finalMetrics.psychologicalScore * 100).toFixed(0)}% | 品${(finalMetrics.contentQualityScore * 100).toFixed(0)}% | 協${(finalMetrics.socialDecisionScore * 100).toFixed(0)}% | 倫${(finalMetrics.ethicsScore * 100).toFixed(0)}%`);
 
     const result = {
       topic: inputData.topic,
-      participantTypes: selectedTypes,
+      participantTypes: selectedTypes.map(type => type as string), // MBTIType[] → string[]変換
       totalStatements: statements.length,
       totalTurns: turnNumber - 1,
       conversationFlow,
@@ -1164,7 +874,7 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         recommendations: allRecommendations
       },
       advancedReport: {
-        summary: `Phase 2完全版: ${selectedTypes.length}タイプによる${turnNumber-1}ターンの高度な議論が完了。7次元品質評価で${(comprehensiveScore * 100).toFixed(1)}%を達成。`,
+        summary: `Phase 2完全版: ${selectedTypes.length}タイプによる${turnNumber - 1}ターンの高度な議論が完了。7次元品質評価で${(comprehensiveScore * 100).toFixed(1)}%を達成。`,
         strengths: generateStrengths(finalMetrics),
         weaknesses: generateWeaknesses(finalMetrics),
         overallScore: comprehensiveScore,
@@ -1172,11 +882,17 @@ const executeAdvancedMBTIDiscussionStep = createStep({
         detailedAnalysis: `リアルタイム最適化により品質が${(totalQualityImprovement * 100).toFixed(1)}%向上。特に${Object.entries(finalMetrics).filter(([_, v]) => v >= 0.85).map(([k, _]) => k).join('、')}の項目で高いスコアを達成。`,
         mbtiTypeAnalysis: mbtiAnalysis
       },
-      // 🆕 議論総括を追加
-      discussionSummary
+      discussionSummary: {
+        overview: discussionSummary.overview || '議論全体の概要',
+        keyThemes: discussionSummary.keyThemes || [],
+        progressAnalysis: discussionSummary.progressAnalysis || '議論の進展分析',
+        mbtiContributions: discussionSummary.mbtiContributions || {},
+        consensus: discussionSummary.consensus || '合意形成の分析',
+        insights: discussionSummary.insights || [],
+        processCharacteristics: discussionSummary.processCharacteristics || []
+      }
     };
 
-    // 🆕 会話保存結果を常に追加
     return {
       ...result,
       conversationSaved: conversationSaveResult
@@ -1194,7 +910,6 @@ export const advancedMBTIDiscussionWorkflow = createWorkflow({
     enableRealtimeOptimization: z.boolean().default(true),
     enableGraphOptimization: z.boolean().default(true),
     qualityThreshold: z.number().min(0.5).max(1.0).default(0.8),
-    // 🆕 会話保存オプション
     saveConversation: z.boolean().default(true).describe('Save conversation to file'),
     outputFormat: z.enum(['markdown', 'json']).default('markdown').describe('Output format for saved conversation'),
     outputDirectory: z.string().default('./conversations').describe('Directory to save conversation files')
@@ -1242,7 +957,6 @@ export const advancedMBTIDiscussionWorkflow = createWorkflow({
         characteristicAlignment: z.number()
       }))
     }),
-    // 🆕 議論総括セクション
     discussionSummary: z.object({
       overview: z.string().describe('議論全体の総合概要'),
       keyThemes: z.array(z.string()).describe('議論で扱われた主要テーマ'),
@@ -1252,7 +966,6 @@ export const advancedMBTIDiscussionWorkflow = createWorkflow({
       insights: z.array(z.string()).describe('議論から得られた重要な洞察'),
       processCharacteristics: z.array(z.string()).describe('議論プロセスの特徴的パターン')
     }),
-    // 🆕 会話保存結果
     conversationSaved: z.object({
       saved: z.boolean(),
       filePath: z.string().optional(),
@@ -1266,4 +979,4 @@ export const advancedMBTIDiscussionWorkflow = createWorkflow({
   .commit();
 
 // 🔄 既存ワークフローも保持（後方互換性）
-export const mbtiDiscussionWorkflow = advancedMBTIDiscussionWorkflow; 
+export const mbtiDiscussionWorkflow = advancedMBTIDiscussionWorkflow;

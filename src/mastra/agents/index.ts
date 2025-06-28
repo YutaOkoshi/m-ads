@@ -1,4 +1,4 @@
-import { Agent } from '@mastra/core/agent';
+import type { Agent } from '@mastra/core/agent';
 import type { MBTIType } from '../types/mbti-types';
 
 // NT (Rational) Agents
