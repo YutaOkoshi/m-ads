@@ -10,3 +10,5 @@ dist
 conversations/
 
 json_conversations/
+
+*.log
