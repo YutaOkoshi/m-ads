@@ -37,64 +37,72 @@ M-ADS（MBTI Multi-Agent Discussion System）は、16のMBTIタイプエージ�
 flowchart TD
     %% Main Flow
     A[run-discussion.ts<br/>コマンドライン実行] --> B[mbti-discussion-workflow.ts<br/>ワークフロー開始]
-    
+
     %% Initialization Phase
     B --> C[統合フィードバックシステム初期化<br/>RealtimeFeedbackManager]
     C --> D[16 MBTIエージェント選択<br/>selectDiverseMBTITypes]
     D --> E[オーケストレーター準備<br/>M-ADS-Orchestrator]
-    
+
     %% Discussion Phases
     E --> F[Phase 1: 初期議論<br/>多様性重視]
     F --> G[Phase 2-4: 反復議論<br/>リアルタイム最適化]
-    
+
     %% Agent Interaction Loop
     G --> H{次の発言者選択<br/>selectNextSpeakerByWeight}
     H --> I[MBTIエージェント発言生成<br/>適応的プロンプト使用]
-    
+
     %% Evaluation Flow
     I --> J[統合フィードバック評価<br/>RealtimeFeedbackManager.evaluateStatement]
     J --> K[QualityEvaluatorChain<br/>並行評価実行]
-    
+
     %% Parallel Evaluators
     K --> L1[SevenDimensionEvaluator<br/>7次元品質評価]
     K --> L2[PerformanceEvaluator<br/>パフォーマンス評価]
     K --> L3[MBTIAlignmentEvaluator<br/>MBTI整合性評価]
-    
+
     %% Evaluation Results Aggregation
     L1 --> M[評価結果統合<br/>aggregateResults]
     L2 --> M
     L3 --> M
-    
+
     %% Optimization Phase
     M --> N[リアルタイム最適化<br/>RealtimeOptimizer]
     N --> O[重み調整<br/>DynamicWeightingEngine]
     N --> P[グラフ最適化<br/>GraphTopologyOptimizer]
-    
+
     %% Feedback Application
     O --> Q[次回発言用<br/>適応的プロンプト生成]
     P --> Q
-    
+
     %% Orchestrator Monitoring
     Q --> R[オーケストレーター<br/>品質監視・介入判断]
     R --> S{議論継続判定}
-    
+
     %% Loop or Conclude
     S -->|継続| H
     S -->|完了| T[総合品質レポート生成<br/>ComprehensiveQualityEvaluator]
     T --> U[会話保存<br/>Markdown/JSON]
-    
+
     %% Styling
     classDef mainProcess fill:#e1f5fe
     classDef evaluation fill:#f3e5f5
     classDef optimization fill:#e8f5e8
     classDef agent fill:#fff3e0
     classDef orchestrator fill:#ffebee
-    
+
     class A,B,F,G,H,I,S,T,U mainProcess
     class J,K,L1,L2,L3,M evaluation
     class N,O,P,Q optimization
     class I agent
     class E,R orchestrator
+```
+
+### 🎨 カラー凡例
+- <span style="color:#01579b;">**🔵 淡い青 (mainProcess)**</span>: メイン処理フロー - ワークフロー制御、初期化、結果生成
+- <span style="color:#7b1fa2;">**🟣 淡い紫 (evaluation)**</span>: 評価システム - 品質評価、フィードバック生成
+- <span style="color:#2e7d32;">**🟢 淡い緑 (optimization)**</span>: 最適化システム - 重み調整、グラフ最適化
+- <span style="color:#f57c00;">**🟠 淡いオレンジ (agent)**</span>: MBTIエージェント - 発言生成、議論参加
+- <span style="color:#c62828;">**🔴 淡い赤 (orchestrator)**</span>: オーケストレーター - 監視、調整、介入
 ```
 
 ### 処理段階詳細
@@ -134,67 +142,67 @@ graph TD
     RFM[RealtimeFeedbackManager<br/>統合フィードバック制御]
     QEC[QualityEvaluatorChain<br/>評価器チェーン統合]
     ORC[M-ADS-Orchestrator<br/>オーケストレーター]
-    
+
     %% MBTI Agents (16 types - showing representative ones)
     INFJ[INFJ-Advocate<br/>提唱者型エージェント]
     ENTJ[ENTJ-Commander<br/>指揮官型エージェント]
     ISFP[ISFP-Adventurer<br/>冒険家型エージェント]
     ENTP[ENTP-Debater<br/>討論者型エージェント]
     DOTS[他12のMBTIエージェント]
-    
+
     %% Evaluators
     SDE[SevenDimensionEvaluator<br/>7次元品質評価器]
     PE[PerformanceEvaluator<br/>パフォーマンス評価器]
     MAE[MBTIAlignmentEvaluator<br/>MBTI整合性評価器]
-    
+
     %% Optimization Components
     RTO[RealtimeOptimizer<br/>リアルタイム最適化]
     DWE[DynamicWeightingEngine<br/>動的重み調整]
     GTO[GraphTopologyOptimizer<br/>グラフ最適化]
-    
+
     %% Support Systems
     HM[HistoryManager<br/>履歴管理]
     FA[FeedbackAggregator<br/>フィードバック統合]
     EB[EventBus<br/>イベント配信]
     PM[PerformanceMonitor<br/>性能監視]
-    
+
     %% === EVALUATION FLOW (評価の流れ) ===
-    
+
     %% Agent statements to central evaluation
     INFJ -->|発言内容<br/>EvaluationContext| RFM
     ENTJ -->|発言内容<br/>EvaluationContext| RFM
     ISFP -->|発言内容<br/>EvaluationContext| RFM
     ENTP -->|発言内容<br/>EvaluationContext| RFM
     DOTS -->|発言内容<br/>EvaluationContext| RFM
-    
+
     %% Central evaluation distribution
     RFM -->|評価依頼<br/>EvaluationContext| QEC
     QEC -->|並行評価実行| SDE
     QEC -->|並行評価実行| PE
     QEC -->|並行評価実行| MAE
-    
+
     %% Evaluation results back to chain
     SDE -->|EvaluationResult<br/>7次元スコア| QEC
     PE -->|EvaluationResult<br/>パフォーマンススコア| QEC
     MAE -->|EvaluationResult<br/>MBTI整合性スコア| QEC
-    
+
     %% Aggregated results to main system
     QEC -->|QualityScores<br/>統合評価結果| RFM
-    
+
     %% Optimization feedback
     RFM -->|QualityScores<br/>最適化依頼| RTO
     RTO -->|OptimizationResult<br/>重み調整指示| DWE
     RTO -->|OptimizationResult<br/>グラフ構造最適化| GTO
-    
+
     %% === FEEDBACK FLOW (フィードバックの流れ) ===
-    
+
     %% Optimization results back to agents
     DWE -->|重み調整<br/>WeightAdjustment| INFJ
     DWE -->|重み調整<br/>WeightAdjustment| ENTJ
     DWE -->|重み調整<br/>WeightAdjustment| ISFP
     DWE -->|重み調整<br/>WeightAdjustment| ENTP
     DWE -->|重み調整<br/>WeightAdjustment| DOTS
-    
+
     %% Adaptive prompt generation
     RFM -->|適応的プロンプト<br/>AdaptivePromptParams| FA
     FA -->|次回発言指示<br/>カスタマイズプロンプト| INFJ
@@ -202,49 +210,58 @@ graph TD
     FA -->|次回発言指示<br/>カスタマイズプロンプト| ISFP
     FA -->|次回発言指示<br/>カスタマイズプロンプト| ENTP
     FA -->|次回発言指示<br/>カスタマイズプロンプト| DOTS
-    
+
     %% === ORCHESTRATOR MONITORING ===
-    
+
     %% Orchestrator receives comprehensive data
     RFM -->|SystemMetrics<br/>システム全体状況| ORC
     QEC -->|ChainStatistics<br/>評価器統計| ORC
     RTO -->|OptimizationMetrics<br/>最適化効果| ORC
-    
+
     %% Orchestrator intervention capabilities
     ORC -->|緊急介入<br/>重み強制調整| DWE
     ORC -->|品質改善指示<br/>グラフ再構築| GTO
     ORC -->|議論フェーズ制御<br/>プロンプト調整| FA
-    
+
     %% === SUPPORT SYSTEMS INTEGRATION ===
-    
+
     %% History management
     RFM -->|評価履歴記録<br/>StatementHistory| HM
     HM -->|履歴データ提供<br/>ProgressTrend| FA
-    
+
     %% Event distribution
     RFM -->|品質アラート<br/>FeedbackEvent| EB
     DWE -->|重み変更通知<br/>WeightChangeEvent| EB
     GTO -->|グラフ変更通知<br/>TopologyChangeEvent| EB
-    
+
     %% Performance monitoring
     QEC -->|評価時間記録<br/>ResponseTime| PM
     RTO -->|最適化時間記録<br/>OptimizationTime| PM
     PM -->|パフォーマンス警告<br/>PerformanceAlert| ORC
-    
-    %% === STYLING ===
+
+        %% === STYLING ===
     classDef centralSystem fill:#1e88e5,color:#fff
     classDef agent fill:#ff9800,color:#fff
     classDef evaluator fill:#9c27b0,color:#fff
     classDef optimizer fill:#4caf50,color:#fff
     classDef support fill:#607d8b,color:#fff
     classDef orchestrator fill:#f44336,color:#fff
-    
+
     class RFM,QEC centralSystem
     class INFJ,ENTJ,ISFP,ENTP,DOTS agent
     class SDE,PE,MAE evaluator
     class RTO,DWE,GTO optimizer
     class HM,FA,EB,PM support
     class ORC orchestrator
+```
+
+### 🎨 カラー凡例
+- <span style="color:#1e88e5;">**🔵 青 (centralSystem)**</span>: 中央制御システム - RealtimeFeedbackManager、QualityEvaluatorChain
+- <span style="color:#ff9800;">**🟠 オレンジ (agent)**</span>: MBTIエージェント - 16タイプの性格別エージェント
+- <span style="color:#9c27b0;">**🟣 紫 (evaluator)**</span>: 評価器群 - 7次元評価、パフォーマンス評価、MBTI整合性評価
+- <span style="color:#4caf50;">**🟢 緑 (optimizer)**</span>: 最適化エンジン - リアルタイム最適化、重み調整、グラフ最適化
+- <span style="color:#607d8b;">**⚫ グレー (support)**</span>: サポートシステム - 履歴管理、イベント配信、性能監視
+- <span style="color:#f44336;">**🔴 赤 (orchestrator)**</span>: オーケストレーター - 議論調整・監視・緊急介入
 ```
 
 ---
@@ -267,7 +284,7 @@ graph TD
 
 #### **評価結果の統合計算**
 ```typescript
-overallScore = 
+overallScore =
   performance * 0.15 +
   psychological * 0.15 +
   externalAlignment * 0.15 +
@@ -289,32 +306,32 @@ graph TB
     %% Control Layer
     WF[mbti-discussion-workflow.ts<br/>メインワークフロー制御]
     ORC[M-ADS-Orchestrator<br/>議論調整・監視・介入]
-    
+
     %% Agent Layer
     A1[INFJ-Advocate]
     A2[ENTJ-Commander]
     A3[ISFP-Adventurer]
     A4[ENTP-Debater]
     OTHERS[他12のMBTIタイプ]
-    
+
     %% Evaluation & Feedback Layer
     RFM[RealtimeFeedbackManager<br/>統合フィードバック制御]
     QEC[QualityEvaluatorChain<br/>品質評価チェーン]
     SDE[SevenDimensionEvaluator<br/>7次元品質評価]
     PE[PerformanceEvaluator<br/>パフォーマンス評価]
     MAE[MBTIAlignmentEvaluator<br/>MBTI整合性評価]
-    
+
     %% Optimization Layer
     RTO[RealtimeOptimizer<br/>リアルタイム最適化]
     DWE[DynamicWeightingEngine<br/>動的重み調整]
     GTO[GraphTopologyOptimizer<br/>グラフ最適化]
-    
+
     %% Support Layer
     HM[HistoryManager<br/>履歴管理]
     FA[FeedbackAggregator<br/>フィードバック統合]
     EB[EventBus<br/>イベント配信]
     PM[PerformanceMonitor<br/>性能監視]
-    
+
     %% Main Flow
     WF --> ORC
     WF --> A1
@@ -322,51 +339,51 @@ graph TB
     WF --> A3
     WF --> A4
     WF --> OTHERS
-    
+
     %% Agent to Evaluation
     A1 --> RFM
     A2 --> RFM
     A3 --> RFM
     A4 --> RFM
     OTHERS --> RFM
-    
+
     %% Evaluation Chain
     RFM --> QEC
     QEC --> SDE
     QEC --> PE
     QEC --> MAE
-    
+
     %% Results Back
     SDE --> QEC
     PE --> QEC
     MAE --> QEC
     QEC --> RFM
-    
+
     %% Optimization
     RFM --> RTO
     RTO --> DWE
     RTO --> GTO
-    
+
     %% Feedback Loops
     RFM --> FA
     DWE --> FA
     GTO --> FA
-    
+
     FA -.-> A1
     FA -.-> A2
     FA -.-> A3
     FA -.-> A4
     FA -.-> OTHERS
-    
+
     %% Orchestrator Monitoring
     RFM --> ORC
     QEC --> ORC
     RTO --> ORC
-    
+
     ORC -.-> DWE
     ORC -.-> GTO
     ORC -.-> FA
-    
+
     %% Support Systems
     RFM --> HM
     RFM --> EB
@@ -374,21 +391,29 @@ graph TB
     HM --> FA
     EB --> ORC
     PM --> ORC
-    
+
     ORC --> WF
-    
-    %% Styling
+
+        %% Styling
     classDef control fill:#1565c0,color:#fff
     classDef agent fill:#ff9800,color:#fff
     classDef evaluation fill:#7b1fa2,color:#fff
     classDef optimization fill:#388e3c,color:#fff
     classDef support fill:#455a64,color:#fff
-    
+
     class WF,ORC control
     class A1,A2,A3,A4,OTHERS agent
     class RFM,QEC,SDE,PE,MAE evaluation
     class RTO,DWE,GTO optimization
     class HM,FA,EB,PM support
+```
+
+### 🎨 カラー凡例
+- <span style="color:#1565c0;">**🔵 濃い青 (control)**</span>: 制御層 - メインワークフロー、オーケストレーター
+- <span style="color:#ff9800;">**🟠 オレンジ (agent)**</span>: エージェント層 - 16のMBTIタイプエージェント
+- <span style="color:#7b1fa2;">**🟣 濃い紫 (evaluation)**</span>: 評価・フィードバック層 - 品質評価システム
+- <span style="color:#388e3c;">**🟢 濃い緑 (optimization)**</span>: 最適化層 - リアルタイム最適化・重み調整・グラフ最適化
+- <span style="color:#455a64;">**⚫ 濃いグレー (support)**</span>: サポート層 - 履歴管理・イベント配信・性能監視
 ```
 
 ## データフロー・評価関係表
@@ -449,10 +474,10 @@ graph TB
 ### 1. リアルタイム品質改善ループ
 
 ```
-MBTIエージェント発言 
-→ 7次元品質評価 
-→ 最適化実行 
-→ 適応的プロンプト生成 
+MBTIエージェント発言
+→ 7次元品質評価
+→ 最適化実行
+→ 適応的プロンプト生成
 → 次回発言改善
 ```
 
@@ -468,9 +493,9 @@ MBTIエージェント発言
 ### 2. システム全体監視ループ
 
 ```
-評価システム統計 
-→ オーケストレーター監視 
-→ 必要に応じて緊急介入 
+評価システム統計
+→ オーケストレーター監視
+→ 必要に応じて緊急介入
 → システム安定化
 ```
 
@@ -488,9 +513,9 @@ MBTIエージェント発言
 ### 3. 学習・進化ループ
 
 ```
-履歴データ蓄積 
-→ 進捗傾向分析 
-→ フィードバック最適化 
+履歴データ蓄積
+→ 進捗傾向分析
+→ フィードバック最適化
 → エージェント性能向上
 ```
 
@@ -603,7 +628,7 @@ npm run discussion -- --topic "リモートワークの未来" --threshold 0.85
 ⚡ リアルタイム最適化結果:
   最適化実行回数: 12回
   品質改善度: 15.3%
-  
+
 🏆 総合評価: A (90.2%)
 💾 会話保存完了: ./conversations/discussion_20241225_143022.md
 ```
@@ -634,7 +659,7 @@ npm run discussion -- --topic "リモートワークの未来" --threshold 0.85
 
 ---
 
-**文書作成日**: 2024年12月25日  
-**バージョン**: M-ADS Phase 2 完全版  
+**文書作成日**: 2024年12月25日
+**バージョン**: M-ADS Phase 2 完全版
 **最終更新**: 統合フィードバックシステム実装完了
 
