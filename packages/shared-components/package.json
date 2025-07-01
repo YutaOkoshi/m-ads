@@ -1,0 +1,29 @@
+{
+  "name": "@m-ads/shared-components",
+  "version": "1.0.0",
+  "description": "Shared React components for M-ADS",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": ["React", "components", "UI", "MBTI", "shared"],
+  "author": "M-ADS Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "@m-ads/shared-types": "file:../shared-types"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "typescript": "^5.0.0"
+  }
+}

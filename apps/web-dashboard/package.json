@@ -1,18 +1,30 @@
 {
-  "name": "webapp",
-  "version": "0.1.0",
+  "name": "@m-ads/web-dashboard",
+  "version": "1.0.0",
+  "description": "M-ADS Web Dashboard - Next.js Frontend",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": ["Next.js", "React", "MBTI", "dashboard", "TypeScript"],
+  "author": "M-ADS Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.9.0"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.7",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.12",
+    "@m-ads/shared-types": "file:../../packages/shared-types",
+    "@m-ads/shared-components": "file:../../packages/shared-components", 
+    "@m-ads/shared-hooks": "file:../../packages/shared-hooks",
+    "@m-ads/shared-utils": "file:../../packages/shared-utils",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.525.0",

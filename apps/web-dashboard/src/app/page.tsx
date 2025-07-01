@@ -1,21 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useDiscussion } from '../hooks/use-discussion';
+import { useDiscussion } from '@m-ads/shared-hooks';
 import ConversationDisplay from '../components/conversation-display';
 import WeightVisualization from '../components/weight-visualization';
-
-// 簡略型定義
-interface DiscussionConfig {
-  topic: string;
-  participantCount: number;
-  enableRealtimeOptimization: boolean;
-  enableGraphOptimization: boolean;
-  qualityThreshold: number;
-  saveConversation: boolean;
-  outputFormat: 'markdown' | 'json';
-  outputDirectory: string;
-}
+import { DiscussionConfig } from '@m-ads/shared-types';
 
 export default function Dashboard() {
   const { state, startDiscussion, resetDiscussion, isRunning, isCompleted, hasError } = useDiscussion();

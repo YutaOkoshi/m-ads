@@ -1,16 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// M-ADS型定義のインポート
-interface DiscussionConfig {
-  topic: string;
-  participantCount: number;
-  enableRealtimeOptimization: boolean;
-  enableGraphOptimization: boolean;
-  qualityThreshold: number;
-  saveConversation: boolean;
-  outputFormat: 'markdown' | 'json';
-  outputDirectory: string;
-}
+import { DiscussionConfig } from '@m-ads/shared-types';
 
 
 
@@ -266,7 +255,7 @@ export async function POST(request: NextRequest) {
       // 🎯 Mastraワークフローの動的インポートと実行
               // 🎯 Mastraワークフロー統合（現在は準備中）
         // TODO: Mastraワークフロー実行の実装
-        // const { advancedMBTIDiscussionWorkflow } = await import('../../../../../mastra/workflows/mbti-discussion-workflow');
+        // const { advancedMBTIDiscussionWorkflow } = await import('@m-ads/mastra-workflows/workflows/mbti-discussion-workflow');
         // result = await advancedMBTIDiscussionWorkflow({ ...config });
         
         console.log('� 現在はモックデータを使用中（Mastraワークフロー統合準備完了）');
