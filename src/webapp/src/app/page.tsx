@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useDiscussion } from '@/hooks/use-discussion';
-import ConversationDisplay from '@/components/conversation-display';
-import WeightVisualization from '@/components/weight-visualization';
+import { useDiscussion } from '../hooks/use-discussion';
+import ConversationDisplay from '../components/conversation-display';
+import WeightVisualization from '../components/weight-visualization';
 
 // 簡略型定義
 interface DiscussionConfig {
@@ -282,7 +282,7 @@ export default function Dashboard() {
                   ].map(tab => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
+                      onClick={() => setActiveTab(tab.id as 'overview' | 'conversation' | 'weights' | 'metrics')}
                       className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
                         activeTab === tab.id
                           ? 'border-blue-500 text-blue-600'

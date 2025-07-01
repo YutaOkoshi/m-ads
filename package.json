@@ -29,6 +29,7 @@
     "@mastra/libsql": "^0.11.0",
     "@mastra/loggers": "^0.10.2",
     "@mastra/memory": "^0.11.0",
+    "dotenv": "^17.0.0",
     "graphology": "^0.26.0",
     "graphology-shortest-path": "^2.1.0",
     "uuid": "^11.1.0",

@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+import { MBTIType } from '../../../types/m-ads';
 
 interface WeightData {
-  mbtiType: string;
+  mbtiType: MBTIType;
   currentWeight: number;
   initialWeight?: number;
   participationCount: number;
@@ -44,7 +45,7 @@ const getBarColor = (group: string) => {
   return colors[group as keyof typeof colors] || 'bg-gray-500';
 };
 
-export default function WeightVisualization({ weightData, showHistory = false }: WeightVisualizationProps) {
+export default function WeightVisualization({ weightData }: WeightVisualizationProps) {
   if (!weightData || weightData.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -61,7 +62,7 @@ export default function WeightVisualization({ weightData, showHistory = false }:
     }
     acc[group.name].types.push(data);
     return acc;
-  }, {} as Record<string, { group: any, types: WeightData[] }>);
+  }, {} as Record<string, { group: { name: string; label: string; color: string }, types: WeightData[] }>);
 
   const maxWeight = Math.max(...weightData.map(d => d.currentWeight), 1.5);
 

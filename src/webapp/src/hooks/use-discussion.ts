@@ -1,5 +1,13 @@
 import { useState, useCallback } from 'react';
-import { DiscussionConfig, DiscussionResult, DiscussionState, ApiResponse } from '../types/m-ads';
+import { DiscussionConfig, DiscussionResult, DiscussionState, ApiResponse, MBTIType } from '../../../types/m-ads';
+
+// MBTIType初期化ヘルパー
+const createEmptyMBTIRecord = (): Record<MBTIType, number> => ({
+  'INTJ': 1.0, 'INTP': 1.0, 'ENTJ': 1.0, 'ENTP': 1.0,
+  'INFJ': 1.0, 'INFP': 1.0, 'ENFJ': 1.0, 'ENFP': 1.0,
+  'ISTJ': 1.0, 'ISFJ': 1.0, 'ESTJ': 1.0, 'ESFJ': 1.0,
+  'ISTP': 1.0, 'ISFP': 1.0, 'ESTP': 1.0, 'ESFP': 1.0,
+});
 
 export function useDiscussion() {
   const [state, setState] = useState<DiscussionState>({
@@ -11,7 +19,7 @@ export function useDiscussion() {
       progressPercentage: 0
     },
     liveMetrics: {
-      latestWeight: {},
+      latestWeight: createEmptyMBTIRecord(),
       qualityTrend: [],
       optimizationCount: 0
     }
@@ -46,8 +54,9 @@ export function useDiscussion() {
       };
 
       // フェーズ別にプログレスを更新
-      for (let phase of ['brainstorming', 'analysis', 'synthesis', 'conclusion'] as const) {
-        updateProgress(phase, state.progress.currentTurn + config.participantCount);
+      for (let i = 0; i < ['brainstorming', 'analysis', 'synthesis', 'conclusion'].length; i++) {
+        const phases = ['brainstorming', 'analysis', 'synthesis', 'conclusion'] as const;
+        updateProgress(phases[i], (i + 1) * config.participantCount);
         await new Promise(resolve => setTimeout(resolve, 1000)); // 1秒待機
       }
 
@@ -96,7 +105,7 @@ export function useDiscussion() {
         progressPercentage: 0
       },
       liveMetrics: {
-        latestWeight: {},
+        latestWeight: createEmptyMBTIRecord(),
         qualityTrend: [],
         optimizationCount: 0
       }

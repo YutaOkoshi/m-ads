@@ -2,32 +2,7 @@
 
 import React from 'react';
 
-// 型定義（簡略版）
-interface ConversationTurn {
-  turnNumber: number;
-  speakerMbtiType: string;
-  statement: string;
-  timestamp: string;
-  confidence: number;
-  relevance: number;
-  dynamicWeight: number;
-  qualityContribution: number;
-  sevenDimensionEvaluation?: {
-    performance: number;
-    psychological: number;
-    externalAlignment: number;
-    internalConsistency: number;
-    socialDecisionMaking: number;
-    contentQuality: number;
-    ethics: number;
-    overallQuality: number;
-  };
-  realtimeOptimization: {
-    weightAdjustment: number;
-    graphOptimization: boolean;
-    qualityImprovement: number;
-  };
-}
+import { ConversationTurn } from '../../../types/m-ads';
 
 interface ConversationDisplayProps {
   conversationFlow: ConversationTurn[];
@@ -132,6 +107,11 @@ export default function ConversationDisplay({ conversationFlow, isRealtime = fal
                 <span className="text-xs text-gray-500">
                   {new Date(turn.timestamp).toLocaleTimeString('ja-JP')}
                 </span>
+                {turn.speakerAgentId && (
+                  <span className="text-xs text-gray-400 font-mono">
+                    {turn.speakerAgentId}
+                  </span>
+                )}
               </div>
               
               <div className="flex items-center space-x-2">
@@ -149,6 +129,15 @@ export default function ConversationDisplay({ conversationFlow, isRealtime = fal
                 )}
               </div>
             </div>
+
+            {/* 返答対象表示 */}
+            {turn.responseToAgent && (
+              <div className="mb-2 text-xs text-gray-600">
+                <span className="bg-gray-100 px-2 py-1 rounded">
+                  💬 {turn.responseToAgent} への返答
+                </span>
+              </div>
+            )}
 
             {/* 発言内容 */}
             <div className="mb-3">
