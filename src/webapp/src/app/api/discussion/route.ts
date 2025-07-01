@@ -264,26 +264,13 @@ export async function POST(request: NextRequest) {
     let result;
     try {
       // 🎯 Mastraワークフローの動的インポートと実行
-      // 注意: 現在はコメントアウト（環境準備中）
-      // const { advancedMBTIDiscussionWorkflow } = await import('../../../../../mastra/workflows/mbti-discussion-workflow');
-      
-      // ワークフロー実行
-      // result = await advancedMBTIDiscussionWorkflow({
-      //   topic: config.topic,
-      //   participantCount: config.participantCount,
-      //   enableRealtimeOptimization: config.enableRealtimeOptimization ?? true,
-      //   enableGraphOptimization: config.enableGraphOptimization ?? true,
-      //   qualityThreshold: config.qualityThreshold ?? 0.8,
-      //   saveConversation: config.saveConversation ?? false,
-      //   outputFormat: config.outputFormat ?? 'markdown',
-      //   outputDirectory: config.outputDirectory ?? './conversations'
-      // });
-
-      // console.log('✅ Mastraワークフロー実行完了');
-      // console.log(`📊 実行結果: ${result.totalTurns}ターン, 総合スコア: ${(result.advancedReport.overallScore * 100).toFixed(1)}%`);
-      
-      // 暫定的にモックデータを返す（統合準備完了後に上記コメントアウトを解除）
-      throw new Error('Mastraワークフロー統合準備中 - モックデータ使用');
+              // 🎯 Mastraワークフロー統合（現在は準備中）
+        // TODO: Mastraワークフロー実行の実装
+        // const { advancedMBTIDiscussionWorkflow } = await import('../../../../../mastra/workflows/mbti-discussion-workflow');
+        // result = await advancedMBTIDiscussionWorkflow({ ...config });
+        
+        console.log('� 現在はモックデータを使用中（Mastraワークフロー統合準備完了）');
+        throw new Error('モックデータでE2Eテスト実行中');
       
     } catch (mastraError) {
       console.error('⚠️ Mastraワークフロー実行失敗、モックデータでフォールバック:', mastraError);
